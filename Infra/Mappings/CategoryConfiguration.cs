@@ -8,17 +8,16 @@ namespace Infra.Mappings
     {
         public void Configure(EntityTypeBuilder<Category> builder)
         {
-            builder.ToTable("employees");
+            builder.ToTable("Categories");
 
-            builder.HasKey(x => x.Id);
+            builder.HasKey(c => c.Id);
 
-            builder.Property(b => b.Name)
+            builder.Property(c => c.Name)
                 .IsRequired()
                 .HasMaxLength(100);
 
-            builder.Property(b => b.Email)
-                .IsRequired()
-                .HasMaxLength(100);
+            builder.Property(c => c.Description)
+                .IsRequired();
         }
     }
 }

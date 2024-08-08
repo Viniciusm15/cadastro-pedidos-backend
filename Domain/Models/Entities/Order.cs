@@ -4,7 +4,7 @@
     {
         public Order()
         {
-            OrdemItens = new List<OrderItem>();
+            OrderItens = new List<OrderItem>();
         }
 
         public DateTime OrderDate { get; set; }
@@ -13,6 +13,6 @@
         public int ClientId { get; set; }
         public Client Client { get; set; }
 
-        public ICollection<OrderItem> OrdemItens { get; set; }
+        public ICollection<OrderItem> OrderItens { get; set; }
     }
 }
