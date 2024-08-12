@@ -6,5 +6,11 @@
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
+
+        protected BaseEntity()
+        {
+            IsActive = true;
+            CreatedAt = DateTime.UtcNow;
+        }
     }
 }
