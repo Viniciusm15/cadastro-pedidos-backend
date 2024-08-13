@@ -1,14 +1,20 @@
-﻿using Domain.Models.Entities;
-using Infra.Data;
+﻿using Application.Interfaces;
+using Domain.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OrderItemController(ApplicationDbContext _context) : ControllerBase
+    public class OrderItemController : ControllerBase
     {
+        private readonly IOrderItemService _orderItemService;
+
+        public OrderItemController(IOrderItemService orderItemService)
+        {
+            _orderItemService = orderItemService;
+        }
+
         /// <summary>
         /// Retorna todos os itens de pedido.
         /// </summary>
@@ -17,12 +23,15 @@ namespace Web.Controllers
         [ProducesResponseType(200)]
         public async Task<ActionResult<IEnumerable<OrderItem>>> GetOrderItems()
         {
-            var orderItems = await _context.OrderItens
-                .Include(orderItem => orderItem.Order)
-                .Include(orderItem => orderItem.Product)
-                .ToListAsync();
-
-            return Ok(orderItems);
+            try
+            {
+                var orderItems = await _orderItemService.GetAllOrderItems();
+                return Ok(orderItems);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }

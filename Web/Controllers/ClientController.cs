@@ -1,10 +1,9 @@
-﻿using Domain.Models.Entities;
+﻿using Application.Interfaces;
+using Application.Services;
+using Common.Exceptions;
+using Domain.Models.Entities;
 using Domain.Models.RequestModels;
-using FluentValidation;
-using Infra.Data;
-using Infra.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Web.Controllers
 {
@@ -12,28 +11,30 @@ namespace Web.Controllers
     [ApiController]
     public class ClientController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IValidator<Client> _clientValidator;
+        private readonly IClientService _clientService;
 
-        public ClientController(ApplicationDbContext context, IValidator<Client> clientValidator)
+        public ClientController(IClientService clientService)
         {
-            _context = context;
-            _clientValidator = clientValidator;
+            _clientService = clientService;
         }
 
         /// <summary>
-        /// Retorna todos os clientes
+        /// Retorna todos os clientes.
         /// </summary>
         /// <returns>Uma lista de clientes.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
         public async Task<ActionResult<IEnumerable<Client>>> GetClients()
         {
-            return await _context.Clients
-                .WhereActive()
-                .OrderBy(client => client.Name)
-                .Include(client => client.Orders)
-                .ToListAsync();
+            try
+            {
+                var clients = await _clientService.GetAllClients();
+                return Ok(clients);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -48,19 +49,23 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<Client>> GetClientById(int id)
         {
-            var client = await _context.Clients
-                .WhereActive()
-                .Include(client => client.Orders)
-                .FirstOrDefaultAsync(client => client.Id == id);
-
-            if (client == null)
-                return NotFound("Client not found by ID: " + id + ". Please try again.");
-
-            return client;
+            try
+            {
+                var client = await _clientService.GetClientById(id);
+                return Ok(client);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
-        /// Adiciona um novo cliente
+        /// Adiciona um novo cliente.
         /// </summary>
         /// <param name="clientRequestModel">Novo cliente a ser adicionado.</param>
         /// <returns>Novo cliente adicionado.</returns>
@@ -69,25 +74,19 @@ namespace Web.Controllers
         [ProducesResponseType(201)]
         public async Task<ActionResult<Client>> PostClient(ClientRequestModel clientRequestModel)
         {
-            var client = new Client()
+            try
             {
-                Name = clientRequestModel.Name,
-                Email = clientRequestModel.Email,
-                Telephone = clientRequestModel.Telephone,
-                BirthDate = clientRequestModel.BirthDate
-            };
-
-            var validationResult = _clientValidator.Validate(client);
-            if (!validationResult.IsValid)
-            {
-                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
-                return BadRequest(errorMessages);
+                var client = await _clientService.CreateClient(clientRequestModel);
+                return CreatedAtAction("GetClientById", new { id = client.Id }, client);
             }
-
-            _context.Clients.Add(client);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetClientById", new { id = client.Id }, client);
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.ValidationErrors);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -105,29 +104,19 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> PutClient(int id, ClientRequestModel clientRequestModel)
         {
-            var client = await _context.Clients
-                .Where(c => c.IsActive)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (client == null)
-                return NotFound("Client not found by ID: " + id);
-
-            client.Name = clientRequestModel.Name;
-            client.Email = clientRequestModel.Email;
-            client.Telephone = clientRequestModel.Telephone;
-            client.BirthDate = clientRequestModel.BirthDate;
-
-            var validationResult = _clientValidator.Validate(client);
-            if (!validationResult.IsValid)
+            try
             {
-                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
-                return BadRequest(errorMessages);
+                await _clientService.UpdateClient(id, clientRequestModel);
+                return NoContent();
             }
-
-            _context.Entry(client).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -142,18 +131,19 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteClientById(int id)
         {
-            var client = await _context.Clients.FindAsync(id);
-
-            if (client == null)
-                return NotFound("Client not found by ID: " + id + ". Please try again.");
-
-            client.IsActive = false;
-            client.DeletedAt = DateTime.UtcNow;
-
-            _context.Clients.Update(client);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            try
+            {
+                await _clientService.DeleteClient(id);
+                return NoContent();
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }

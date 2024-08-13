@@ -1,10 +1,8 @@
-﻿using Domain.Models.Entities;
+﻿using Application.Interfaces;
+using Common.Exceptions;
+using Domain.Models.Entities;
 using Domain.Models.RequestModels;
-using FluentValidation;
-using Infra.Data;
-using Infra.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Web.Controllers
 {
@@ -12,29 +10,30 @@ namespace Web.Controllers
     [ApiController]
     public class OrderController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IValidator<Order> _orderValidator;
+        private readonly IOrderService _orderService;
 
-        public OrderController(ApplicationDbContext context, IValidator<Order> orderValidator)
+        public OrderController(IOrderService orderService)
         {
-            _context = context;
-            _orderValidator = orderValidator;
+            _orderService = orderService;
         }
 
         /// <summary>
-        /// Retorna todos os pedidos
+        /// Retorna todos os pedidos.
         /// </summary>
         /// <returns>Uma lista de pedidos.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
         public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
         {
-            return await _context.Orders
-                .WhereActive()
-                .OrderBy(order => order.OrderDate)
-                .Include(order => order.Client)
-                .Include(order => order.OrderItens)
-                .ToListAsync();
+            try
+            {
+                var orders = await _orderService.GetAllOrders();
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -49,20 +48,23 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<Order>> GetOrderById(int id)
         {
-            var order = await _context.Orders
-                .WhereActive()
-                .Include(order => order.Client)
-                .Include(order => order.OrderItens)
-                .FirstOrDefaultAsync(order => order.Id == id);
-
-            if (order == null)
-                return NotFound("Order not found by ID: " + id + ". Please try again.");
-
-            return order;
+            try
+            {
+                var order = await _orderService.GetOrderById(id);
+                return Ok(order);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
-        /// Adiciona um novo pedido
+        /// Adiciona um novo pedido.
         /// </summary>
         /// <param name="orderRequestModel">Novo pedido a ser adicionado.</param>
         /// <returns>Novo pedido adicionado.</returns>
@@ -71,24 +73,19 @@ namespace Web.Controllers
         [ProducesResponseType(201)]
         public async Task<ActionResult<Order>> PostOrder(OrderRequestModel orderRequestModel)
         {
-            var order = new Order()
+            try
             {
-                OrderDate = orderRequestModel.OrderDate,
-                TotalValue = orderRequestModel.TotalValue,
-                ClientId = orderRequestModel.ClientId
-            };
-
-            var validationResult = _orderValidator.Validate(order);
-            if (!validationResult.IsValid)
-            {
-                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
-                return BadRequest(errorMessages);
+                var order = await _orderService.CreateOrder(orderRequestModel);
+                return CreatedAtAction("GetOrderById", new { id = order.Id }, order);
             }
-
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetOrderById", new { id = order.Id }, order);
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.ValidationErrors);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -106,28 +103,19 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> PutOrder(int id, OrderRequestModel orderRequestModel)
         {
-            var order = await _context.Orders
-                .Where(o => o.IsActive)
-                .FirstOrDefaultAsync(o => o.Id == id);
-
-            if (order == null)
-                return NotFound("Order not found by ID: " + id);
-
-            order.OrderDate = orderRequestModel.OrderDate;
-            order.TotalValue = orderRequestModel.TotalValue;
-            order.ClientId = orderRequestModel.ClientId;
-
-            var validationResult = _orderValidator.Validate(order);
-            if (!validationResult.IsValid)
+            try
             {
-                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
-                return BadRequest(errorMessages);
+                await _orderService.UpdateOrder(id, orderRequestModel);
+                return NoContent();
             }
-
-            _context.Entry(order).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -142,18 +130,19 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteOrderById(int id)
         {
-            var order = await _context.Orders.FindAsync(id);
-
-            if (order == null)
-                return NotFound("Order not found by ID: " + id + ". Please try again.");
-
-            order.IsActive = false;
-            order.DeletedAt = DateTime.UtcNow;
-
-            _context.Orders.Update(order);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            try
+            {
+                await _orderService.DeleteOrder(id);
+                return NoContent();
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }

@@ -1,10 +1,8 @@
-﻿using Domain.Models.Entities;
+﻿using Application.Interfaces;
+using Common.Exceptions;
+using Domain.Models.Entities;
 using Domain.Models.RequestModels;
-using FluentValidation;
-using Infra.Data;
-using Infra.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Web.Controllers
 {
@@ -12,29 +10,30 @@ namespace Web.Controllers
     [ApiController]
     public class ProductController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IValidator<Product> _productValidator;
+        private readonly IProductService _productService;
 
-        public ProductController(ApplicationDbContext context, IValidator<Product> productValidator)
+        public ProductController(IProductService productService)
         {
-            _context = context;
-            _productValidator = productValidator;
+            _productService = productService;
         }
 
         /// <summary>
-        /// Retorna todos os produtos
+        /// Retorna todos os produtos.
         /// </summary>
         /// <returns>Uma lista de produtos.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
-            return await _context.Products
-                .WhereActive()
-                .OrderBy(product => product.Name)
-                .Include(product => product.Category)
-                .Include(product => product.OrderItens)
-                .ToListAsync();
+            try
+            {
+                var products = await _productService.GetProducts();
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -49,20 +48,23 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<Product>> GetProductById(int id)
         {
-            var product = await _context.Products
-                .WhereActive()
-                .Include(product => product.Category)
-                .Include(product => product.OrderItens)
-                .FirstOrDefaultAsync(product => product.Id == id);
-
-            if (product == null)
-                return NotFound("Product not found by ID: " + id + ". Please try again.");
-
-            return product;
+            try
+            {
+                var product = await _productService.GetProductById(id);
+                return Ok(product);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
-        /// Adiciona um novo produto
+        /// Adiciona um novo produto.
         /// </summary>
         /// <param name="productRequestModel">Novo produto a ser adicionado.</param>
         /// <returns>Produto adicionado.</returns>
@@ -71,26 +73,19 @@ namespace Web.Controllers
         [ProducesResponseType(201)]
         public async Task<ActionResult<Product>> PostProduct(ProductRequestModel productRequestModel)
         {
-            var product = new Product()
+            try
             {
-                Name = productRequestModel.Name,
-                Description = productRequestModel.Description,
-                Price = productRequestModel.Price,
-                StockQuantity = productRequestModel.StockQuantity,
-                CategoryId = productRequestModel.CategoryId
-            };
-
-            var validationResult = _productValidator.Validate(product);
-            if (!validationResult.IsValid)
-            {
-                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
-                return BadRequest(errorMessages);
+                var product = await _productService.CreateProduct(productRequestModel);
+                return CreatedAtAction("GetProductById", new { id = product.Id }, product);
             }
-
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetProductById", new { id = product.Id }, product);
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.ValidationErrors);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -101,37 +96,27 @@ namespace Web.Controllers
         /// <returns>Retorna NoContent se a atualização for bem-sucedida.</returns>
         /// <response code="204">Produto atualizado com sucesso.</response>
         /// <response code="400">Requisição inválida.</response>
-        /// <response code="404">Produto não encontrado.</response>
+        /// <response code="404">Produto não encontrado.</response>   
+
         [HttpPut("{id}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> PutProduct(int id, ProductRequestModel productRequestModel)
         {
-            var product = await _context.Products
-                .Where(p => p.IsActive)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (product == null)
-                return NotFound("Product not found by ID: " + id);
-
-            product.Name = productRequestModel.Name;
-            product.Description = productRequestModel.Description;
-            product.Price = productRequestModel.Price;
-            product.StockQuantity = productRequestModel.StockQuantity;
-            product.CategoryId = productRequestModel.CategoryId;
-
-            var validationResult = _productValidator.Validate(product);
-            if (!validationResult.IsValid)
+            try
             {
-                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
-                return BadRequest(errorMessages);
+                await _productService.UpdateProduct(id, productRequestModel);
+                return NoContent();
             }
-
-            _context.Entry(product).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -146,18 +131,19 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteProductById(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-
-            if (product == null)
-                return NotFound("Product not found by ID: " + id + ". Please try again.");
-
-            product.IsActive = false;
-            product.DeletedAt = DateTime.UtcNow;
-
-            _context.Products.Update(product);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            try
+            {
+                await _productService.DeleteProduct(id);
+                return NoContent();
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }

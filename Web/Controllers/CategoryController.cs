@@ -1,10 +1,8 @@
-﻿using Domain.Models.Entities;
+﻿using Application.Interfaces;
+using Common.Exceptions;
+using Domain.Models.Entities;
 using Domain.Models.RequestModels;
-using FluentValidation;
-using Infra.Data;
-using Infra.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Web.Controllers
 {
@@ -12,28 +10,30 @@ namespace Web.Controllers
     [ApiController]
     public class CategoryController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IValidator<Category> _categoryValidator;
+        private readonly ICategoryService _categoryService;
 
-        public CategoryController(ApplicationDbContext context, IValidator<Category> categoryValidator)
+        public CategoryController(ICategoryService categoryService)
         {
-            _context = context;
-            _categoryValidator = categoryValidator;
+            _categoryService = categoryService;
         }
 
         /// <summary>
-        /// Retorna todas as categorias
+        /// Retorna todas as categorias.
         /// </summary>
         /// <returns>Uma lista de categorias.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
         public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
         {
-            return await _context.Categories
-                .WhereActive()
-                .OrderBy(category => category.Name)
-                .Include(category => category.Products)
-                .ToListAsync();
+            try
+            {
+                var categories = await _categoryService.GetAllCategories();
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -48,19 +48,23 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<Category>> GetCategoryById(int id)
         {
-            var category = await _context.Categories
-                .WhereActive()
-                .Include(category => category.Products)
-                .FirstOrDefaultAsync(category => category.Id == id);
-
-            if (category == null)
-                return NotFound("Category not found by ID: " + id + ". Please try again.");
-
-            return category;
+            try
+            {
+                var category = await _categoryService.GetCategoryById(id);
+                return Ok(category);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
-        /// Adiciona uma nova categoria
+        /// Adiciona uma nova categoria.
         /// </summary>
         /// <param name="categoryRequestModel">Nova categoria a ser adicionada.</param>
         /// <returns>Nova categoria adicionada.</returns>
@@ -69,23 +73,19 @@ namespace Web.Controllers
         [ProducesResponseType(201)]
         public async Task<ActionResult<Category>> PostCategory(CategoryRequestModel categoryRequestModel)
         {
-            var category = new Category()
+            try
             {
-                Name = categoryRequestModel.Name,
-                Description = categoryRequestModel.Description
-            };
-
-            var validationResult = _categoryValidator.Validate(category);
-            if (!validationResult.IsValid)
-            {
-                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
-                return BadRequest(errorMessages);
+                var newCategory = await _categoryService.CreateCategory(categoryRequestModel);
+                return CreatedAtAction("GetCategoryById", new { id = newCategory.Id }, newCategory);
             }
-
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetCategoryById", new { id = category.Id }, category);
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.ValidationErrors);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -103,27 +103,23 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> PutCategory(int id, CategoryRequestModel categoryRequestModel)
         {
-            var category = await _context.Categories
-                .Where(c => c.IsActive)
-                .FirstOrDefaultAsync(c => c.Id == id);
-
-            if (category == null)
-                return NotFound("Category not found by ID: " + id);
-
-            category.Name = categoryRequestModel.Name;
-            category.Description = categoryRequestModel.Description;
-
-            var validationResult = _categoryValidator.Validate(category);
-            if (!validationResult.IsValid)
+            try
             {
-                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
-                return BadRequest(errorMessages);
+                await _categoryService.UpdateCategory(id, categoryRequestModel);
+                return NoContent();
             }
-
-            _context.Entry(category).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.ValidationErrors);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         /// <summary>
@@ -138,18 +134,19 @@ namespace Web.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteCategoryById(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
-
-            if (category == null)
-                return NotFound("Category not found by ID: " + id + ". Please try again.");
-
-            category.IsActive = false;
-            category.DeletedAt = DateTime.UtcNow;
-
-            _context.Categories.Update(category);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            try
+            {
+                await _categoryService.DeleteCategory(id);
+                return NoContent();
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }
