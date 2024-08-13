@@ -1,4 +1,7 @@
-﻿namespace Domain.Models.Entities
+﻿using FluentValidation;
+using FluentValidation.Results;
+
+namespace Domain.Models.Entities
 {
     public abstract class BaseEntity
     {
@@ -11,6 +14,11 @@
         {
             IsActive = true;
             CreatedAt = DateTime.UtcNow;
+        }
+
+        public ValidationResult Validate<T>(IValidator<T> validator) where T : BaseEntity
+        {
+            return validator.Validate((T)this);
         }
     }
 }

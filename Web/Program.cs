@@ -1,3 +1,5 @@
+using Domain.Validators;
+using FluentValidation;
 using Infra.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -6,6 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Add sevices dependencies injection.
+builder.Services.AddValidatorsFromAssemblyContaining<CategoryValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<ClientValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<OrderItemValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<OrderValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<ProductValidator>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultDbConnection")));

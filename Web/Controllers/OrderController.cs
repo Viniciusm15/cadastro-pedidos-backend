@@ -1,5 +1,6 @@
 ﻿using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using FluentValidation;
 using Infra.Data;
 using Infra.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -9,8 +10,17 @@ namespace Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class OrderController(ApplicationDbContext _context) : ControllerBase
+    public class OrderController : ControllerBase
     {
+        private readonly ApplicationDbContext _context;
+        private readonly IValidator<Order> _orderValidator;
+
+        public OrderController(ApplicationDbContext context, IValidator<Order> orderValidator)
+        {
+            _context = context;
+            _orderValidator = orderValidator;
+        }
+
         /// <summary>
         /// Retorna todos os pedidos
         /// </summary>
@@ -46,9 +56,7 @@ namespace Web.Controllers
                 .FirstOrDefaultAsync(order => order.Id == id);
 
             if (order == null)
-            {
                 return NotFound("Order not found by ID: " + id + ". Please try again.");
-            }
 
             return order;
         }
@@ -69,6 +77,13 @@ namespace Web.Controllers
                 TotalValue = orderRequestModel.TotalValue,
                 ClientId = orderRequestModel.ClientId
             };
+
+            var validationResult = _orderValidator.Validate(order);
+            if (!validationResult.IsValid)
+            {
+                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
+                return BadRequest(errorMessages);
+            }
 
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
@@ -96,13 +111,18 @@ namespace Web.Controllers
                 .FirstOrDefaultAsync(o => o.Id == id);
 
             if (order == null)
-            {
                 return NotFound("Order not found by ID: " + id);
-            }
 
             order.OrderDate = orderRequestModel.OrderDate;
             order.TotalValue = orderRequestModel.TotalValue;
             order.ClientId = orderRequestModel.ClientId;
+
+            var validationResult = _orderValidator.Validate(order);
+            if (!validationResult.IsValid)
+            {
+                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
+                return BadRequest(errorMessages);
+            }
 
             _context.Entry(order).State = EntityState.Modified;
             await _context.SaveChangesAsync();
@@ -125,9 +145,7 @@ namespace Web.Controllers
             var order = await _context.Orders.FindAsync(id);
 
             if (order == null)
-            {
                 return NotFound("Order not found by ID: " + id + ". Please try again.");
-            }
 
             order.IsActive = false;
             order.DeletedAt = DateTime.UtcNow;

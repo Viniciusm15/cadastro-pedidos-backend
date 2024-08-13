@@ -1,5 +1,6 @@
 ﻿using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using FluentValidation;
 using Infra.Data;
 using Infra.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -9,8 +10,17 @@ namespace Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ClientController(ApplicationDbContext _context) : ControllerBase
+    public class ClientController : ControllerBase
     {
+        private readonly ApplicationDbContext _context;
+        private readonly IValidator<Client> _clientValidator;
+
+        public ClientController(ApplicationDbContext context, IValidator<Client> clientValidator)
+        {
+            _context = context;
+            _clientValidator = clientValidator;
+        }
+
         /// <summary>
         /// Retorna todos os clientes
         /// </summary>
@@ -44,9 +54,7 @@ namespace Web.Controllers
                 .FirstOrDefaultAsync(client => client.Id == id);
 
             if (client == null)
-            {
                 return NotFound("Client not found by ID: " + id + ". Please try again.");
-            }
 
             return client;
         }
@@ -68,6 +76,13 @@ namespace Web.Controllers
                 Telephone = clientRequestModel.Telephone,
                 BirthDate = clientRequestModel.BirthDate
             };
+
+            var validationResult = _clientValidator.Validate(client);
+            if (!validationResult.IsValid)
+            {
+                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
+                return BadRequest(errorMessages);
+            }
 
             _context.Clients.Add(client);
             await _context.SaveChangesAsync();
@@ -95,14 +110,19 @@ namespace Web.Controllers
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (client == null)
-            {
                 return NotFound("Client not found by ID: " + id);
-            }
 
             client.Name = clientRequestModel.Name;
             client.Email = clientRequestModel.Email;
             client.Telephone = clientRequestModel.Telephone;
             client.BirthDate = clientRequestModel.BirthDate;
+
+            var validationResult = _clientValidator.Validate(client);
+            if (!validationResult.IsValid)
+            {
+                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
+                return BadRequest(errorMessages);
+            }
 
             _context.Entry(client).State = EntityState.Modified;
             await _context.SaveChangesAsync();
@@ -125,9 +145,7 @@ namespace Web.Controllers
             var client = await _context.Clients.FindAsync(id);
 
             if (client == null)
-            {
                 return NotFound("Client not found by ID: " + id + ". Please try again.");
-            }
 
             client.IsActive = false;
             client.DeletedAt = DateTime.UtcNow;

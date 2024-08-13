@@ -1,5 +1,6 @@
 ﻿using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using FluentValidation;
 using Infra.Data;
 using Infra.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -9,8 +10,17 @@ namespace Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CategoryController(ApplicationDbContext _context) : ControllerBase
+    public class CategoryController : ControllerBase
     {
+        private readonly ApplicationDbContext _context;
+        private readonly IValidator<Category> _categoryValidator;
+
+        public CategoryController(ApplicationDbContext context, IValidator<Category> categoryValidator)
+        {
+            _context = context;
+            _categoryValidator = categoryValidator;
+        }
+
         /// <summary>
         /// Retorna todas as categorias
         /// </summary>
@@ -44,9 +54,7 @@ namespace Web.Controllers
                 .FirstOrDefaultAsync(category => category.Id == id);
 
             if (category == null)
-            {
                 return NotFound("Category not found by ID: " + id + ". Please try again.");
-            }
 
             return category;
         }
@@ -66,6 +74,13 @@ namespace Web.Controllers
                 Name = categoryRequestModel.Name,
                 Description = categoryRequestModel.Description
             };
+
+            var validationResult = _categoryValidator.Validate(category);
+            if (!validationResult.IsValid)
+            {
+                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
+                return BadRequest(errorMessages);
+            }
 
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
@@ -93,12 +108,17 @@ namespace Web.Controllers
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (category == null)
-            {
                 return NotFound("Category not found by ID: " + id);
-            }
 
             category.Name = categoryRequestModel.Name;
             category.Description = categoryRequestModel.Description;
+
+            var validationResult = _categoryValidator.Validate(category);
+            if (!validationResult.IsValid)
+            {
+                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
+                return BadRequest(errorMessages);
+            }
 
             _context.Entry(category).State = EntityState.Modified;
             await _context.SaveChangesAsync();
@@ -121,9 +141,7 @@ namespace Web.Controllers
             var category = await _context.Categories.FindAsync(id);
 
             if (category == null)
-            {
                 return NotFound("Category not found by ID: " + id + ". Please try again.");
-            }
 
             category.IsActive = false;
             category.DeletedAt = DateTime.UtcNow;

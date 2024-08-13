@@ -1,5 +1,6 @@
 ﻿using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using FluentValidation;
 using Infra.Data;
 using Infra.Extensions;
 using Microsoft.AspNetCore.Mvc;
@@ -9,8 +10,17 @@ namespace Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ProductController(ApplicationDbContext _context) : ControllerBase
+    public class ProductController : ControllerBase
     {
+        private readonly ApplicationDbContext _context;
+        private readonly IValidator<Product> _productValidator;
+
+        public ProductController(ApplicationDbContext context, IValidator<Product> productValidator)
+        {
+            _context = context;
+            _productValidator = productValidator;
+        }
+
         /// <summary>
         /// Retorna todos os produtos
         /// </summary>
@@ -46,9 +56,7 @@ namespace Web.Controllers
                 .FirstOrDefaultAsync(product => product.Id == id);
 
             if (product == null)
-            {
                 return NotFound("Product not found by ID: " + id + ". Please try again.");
-            }
 
             return product;
         }
@@ -71,6 +79,13 @@ namespace Web.Controllers
                 StockQuantity = productRequestModel.StockQuantity,
                 CategoryId = productRequestModel.CategoryId
             };
+
+            var validationResult = _productValidator.Validate(product);
+            if (!validationResult.IsValid)
+            {
+                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
+                return BadRequest(errorMessages);
+            }
 
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
@@ -98,15 +113,20 @@ namespace Web.Controllers
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null)
-            {
                 return NotFound("Product not found by ID: " + id);
-            }
 
             product.Name = productRequestModel.Name;
             product.Description = productRequestModel.Description;
             product.Price = productRequestModel.Price;
             product.StockQuantity = productRequestModel.StockQuantity;
             product.CategoryId = productRequestModel.CategoryId;
+
+            var validationResult = _productValidator.Validate(product);
+            if (!validationResult.IsValid)
+            {
+                var errorMessages = validationResult.Errors.Select(e => e.ErrorMessage);
+                return BadRequest(errorMessages);
+            }
 
             _context.Entry(product).State = EntityState.Modified;
             await _context.SaveChangesAsync();
@@ -129,9 +149,7 @@ namespace Web.Controllers
             var product = await _context.Products.FindAsync(id);
 
             if (product == null)
-            {
                 return NotFound("Product not found by ID: " + id + ". Please try again.");
-            }
 
             product.IsActive = false;
             product.DeletedAt = DateTime.UtcNow;
