@@ -1,6 +1,8 @@
-﻿namespace Domain.Models.Entities
+﻿using Domain.Interfaces;
+
+namespace Domain.Models.Entities
 {
-    public class OrderItem : BaseEntity
+    public class OrderItem : BaseEntity, ISoftDeletable
     {
         public int Quantity { get; set; }
         public double UnitaryPrice { get; set; }

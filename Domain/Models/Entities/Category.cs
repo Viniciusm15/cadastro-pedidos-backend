@@ -1,6 +1,8 @@
-﻿namespace Domain.Models.Entities
+﻿using Domain.Interfaces;
+
+namespace Domain.Models.Entities
 {
-    public class Category : BaseEntity
+    public class Category : BaseEntity, ISoftDeletable
     {
         public Category()
         {

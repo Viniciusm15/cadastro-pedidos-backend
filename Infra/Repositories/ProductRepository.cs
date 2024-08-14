@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repositories
 {
-    public class ProductRepository : IProductRepository
+    public class ProductRepository : GenericRepository<Product>, IProductRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public ProductRepository(ApplicationDbContext context)
+        public ProductRepository(ApplicationDbContext context) : base(context)
         {
             _context = context;
         }
@@ -32,27 +32,6 @@ namespace Infra.Repositories
                 .Include(product => product.Category)
                 .Include(product => product.OrderItens)
                 .FirstOrDefaultAsync(product => product.Id == id);
-        }
-
-        public async Task AddProductAsync(Product product)
-        {
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task UpdateProductAsync(Product product)
-        {
-            _context.Entry(product).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task DeleteProductAsync(Product product)
-        {
-            product.IsActive = false;
-            product.DeletedAt = DateTime.UtcNow;
-
-            _context.Products.Update(product);
-            await _context.SaveChangesAsync();
         }
     }
 }

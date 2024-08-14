@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repositories
 {
-    public class OrderItemRepository : IOrderItemRepository
+    public class OrderItemRepository : GenericRepository<OrderItem>, IOrderItemRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public OrderItemRepository(ApplicationDbContext context)
+        public OrderItemRepository(ApplicationDbContext context) : base(context)
         {
             _context = context;
         }

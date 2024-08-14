@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repositories
 {
-    public class CategoryRepository : ICategoryRepository
+    public class CategoryRepository : GenericRepository<Category>, ICategoryRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public CategoryRepository(ApplicationDbContext context)
+        public CategoryRepository(ApplicationDbContext context) : base(context)
         {
             _context = context;
         }
@@ -30,27 +30,6 @@ namespace Infra.Repositories
                 .WhereActive()
                 .Include(category => category.Products)
                 .FirstOrDefaultAsync(category => category.Id == id);
-        }
-
-        public async Task AddCategoryAsync(Category category)
-        {
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task UpdateCategoryAsync(Category category)
-        {
-            _context.Entry(category).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task DeleteCategoryAsync(Category category)
-        {
-            category.IsActive = false;
-            category.DeletedAt = DateTime.UtcNow;
-
-            _context.Categories.Update(category);
-            await _context.SaveChangesAsync();
         }
     }
 }

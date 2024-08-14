@@ -43,7 +43,7 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            await _clientRepository.AddClientAsync(client);
+            await _clientRepository.CreateAsync(client);
             return client;
         }
 
@@ -61,13 +61,13 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            await _clientRepository.UpdateClientAsync(client);
+            await _clientRepository.UpdateAsync(client);
         }
 
         public async Task DeleteClient(int id)
         {
             var client = await GetClientById(id);
-            await _clientRepository.DeleteClientAsync(client);
+            await _clientRepository.DeleteAsync(client);
         }
     }
 }

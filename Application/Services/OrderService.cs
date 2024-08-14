@@ -42,7 +42,7 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            await _orderRepository.AddOrderAsync(order);
+            await _orderRepository.CreateAsync(order);
             return order;
         }
 
@@ -59,13 +59,13 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            await _orderRepository.UpdateOrderAsync(order);
+            await _orderRepository.UpdateAsync(order);
         }
 
         public async Task DeleteOrder(int id)
         {
             var order = await GetOrderById(id);
-            await _orderRepository.DeleteOrderAsync(order);
+            await _orderRepository.DeleteAsync(order);
         }
     }
 }

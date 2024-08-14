@@ -44,7 +44,7 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            await _productRepository.AddProductAsync(product);
+            await _productRepository.CreateAsync(product);
             return product;
         }
 
@@ -63,13 +63,13 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            await _productRepository.UpdateProductAsync(product);
+            await _productRepository.UpdateAsync(product);
         }
 
         public async Task DeleteProduct(int id)
         {
             var product = await GetProductById(id);
-            await _productRepository.DeleteProductAsync(product);
+            await _productRepository.DeleteAsync(product);
         }
     }
 }

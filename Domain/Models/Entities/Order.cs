@@ -1,6 +1,8 @@
-﻿namespace Domain.Models.Entities
+﻿using Domain.Interfaces;
+
+namespace Domain.Models.Entities
 {
-    public class Order : BaseEntity
+    public class Order : BaseEntity, ISoftDeletable
     {
         public Order()
         {

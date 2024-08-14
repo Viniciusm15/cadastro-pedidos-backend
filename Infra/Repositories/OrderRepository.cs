@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repositories
 {
-    public class OrderRepository : IOrderRepository
+    public class OrderRepository : GenericRepository<Order>, IOrderRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public OrderRepository(ApplicationDbContext context)
+        public OrderRepository(ApplicationDbContext context) : base(context)
         {
             _context = context;
         }
@@ -32,27 +32,6 @@ namespace Infra.Repositories
                 .Include(order => order.Client)
                 .Include(order => order.OrderItens)
                 .FirstOrDefaultAsync(order => order.Id == id);
-        }
-
-        public async Task AddOrderAsync(Order order)
-        {
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task UpdateOrderAsync(Order order)
-        {
-            _context.Entry(order).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task DeleteOrderAsync(Order order)
-        {
-            order.IsActive = false;
-            order.DeletedAt = DateTime.UtcNow;
-
-            _context.Orders.Update(order);
-            await _context.SaveChangesAsync();
         }
     }
 }

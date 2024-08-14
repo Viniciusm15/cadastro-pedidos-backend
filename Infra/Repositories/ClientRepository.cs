@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repositories
 {
-    public class ClientRepository : IClientRepository
+    public class ClientRepository : GenericRepository<Client>, IClientRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public ClientRepository(ApplicationDbContext context)
+        public ClientRepository(ApplicationDbContext context) : base(context)
         {
             _context = context;
         }
@@ -30,27 +30,6 @@ namespace Infra.Repositories
                 .WhereActive()
                 .Include(client => client.Orders)
                 .FirstOrDefaultAsync(client => client.Id == id);
-        }
-
-        public async Task AddClientAsync(Client client)
-        {
-            _context.Clients.Add(client);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task UpdateClientAsync(Client client)
-        {
-            _context.Entry(client).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task DeleteClientAsync(Client client)
-        {
-            client.IsActive = false;
-            client.DeletedAt = DateTime.UtcNow;
-
-            _context.Clients.Update(client);
-            await _context.SaveChangesAsync();
         }
     }
 }

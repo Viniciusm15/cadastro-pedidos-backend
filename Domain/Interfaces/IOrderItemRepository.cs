@@ -2,7 +2,7 @@
 
 namespace Domain.Interfaces
 {
-    public interface IOrderItemRepository
+    public interface IOrderItemRepository : IGenericRepository<OrderItem>
     {
         Task<IEnumerable<OrderItem>> GetAllOrderItemsAsync();
     }

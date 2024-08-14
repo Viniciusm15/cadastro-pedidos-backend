@@ -41,7 +41,7 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            await _categoryRepository.AddCategoryAsync(category);
+            await _categoryRepository.CreateAsync(category);
             return category;
         }
 
@@ -57,13 +57,13 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            await _categoryRepository.UpdateCategoryAsync(category);
+            await _categoryRepository.UpdateAsync(category);
         }
 
         public async Task DeleteCategory(int id)
         {
             var category = await GetCategoryById(id);
-            await _categoryRepository.DeleteCategoryAsync(category);
+            await _categoryRepository.DeleteAsync(category);
         }
     }
 }

@@ -1,6 +1,8 @@
-﻿namespace Domain.Models.Entities
+﻿using Domain.Interfaces;
+
+namespace Domain.Models.Entities
 {
-    public class Client : BaseEntity
+    public class Client : BaseEntity, ISoftDeletable
     {
         public Client()
         {
