@@ -1,42 +1,31 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
+using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
 using FluentValidation;
-using Infra.Data;
-using Infra.Extensions;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application.Services
 {
     public class ClientService : IClientService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IClientRepository _clientRepository;
         private readonly IValidator<Client> _clientValidator;
 
-        public ClientService(ApplicationDbContext context, IValidator<Client> clientValidator)
+        public ClientService(IClientRepository clientRepository, IValidator<Client> clientValidator)
         {
-            _context = context;
+            _clientRepository = clientRepository;
             _clientValidator = clientValidator;
         }
 
         public async Task<IEnumerable<Client>> GetAllClients()
         {
-            return await _context.Clients
-                .WhereActive()
-                .OrderBy(client => client.Name)
-                .Include(client => client.Orders)
-                .ToListAsync();
+            return await _clientRepository.GetAllClientsAsync();
         }
 
         public async Task<Client> GetClientById(int id)
         {
-            var client = await _context.Clients
-                .WhereActive()
-                .Include(client => client.Orders)
-                .FirstOrDefaultAsync(client => client.Id == id);
-
-            return client ?? throw new NotFoundException($"Client not found by ID: {id}");
+            return await _clientRepository.GetClientByIdAsync(id) ?? throw new NotFoundException($"Client not found by ID: {id}");
         }
 
         public async Task<Client> CreateClient(ClientRequestModel clientRequestModel)
@@ -54,15 +43,13 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            _context.Clients.Add(client);
-            await _context.SaveChangesAsync();
-
+            await _clientRepository.AddClientAsync(client);
             return client;
         }
 
         public async Task UpdateClient(int id, ClientRequestModel clientRequestModel)
         {
-            var client = await GetClientById(id) ?? throw new NotFoundException($"Client not found by ID: {id}");
+            var client = await GetClientById(id);
 
             client.Name = clientRequestModel.Name;
             client.Email = clientRequestModel.Email;
@@ -74,19 +61,13 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            _context.Entry(client).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            await _clientRepository.UpdateClientAsync(client);
         }
 
         public async Task DeleteClient(int id)
         {
-            var client = await GetClientById(id) ?? throw new NotFoundException($"Client not found by ID: {id}");
-
-            client.IsActive = false;
-            client.DeletedAt = DateTime.UtcNow;
-
-            _context.Clients.Update(client);
-            await _context.SaveChangesAsync();
+            var client = await GetClientById(id);
+            await _clientRepository.DeleteClientAsync(client);
         }
     }
 }

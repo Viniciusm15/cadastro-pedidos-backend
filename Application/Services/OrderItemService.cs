@@ -1,27 +1,21 @@
 ﻿using Application.Interfaces;
+using Domain.Interfaces;
 using Domain.Models.Entities;
-using Infra.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application.Services
 {
     public class OrderItemService : IOrderItemService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IOrderItemRepository _orderItemRepository;
 
-        public OrderItemService(ApplicationDbContext context)
+        public OrderItemService(IOrderItemRepository orderItemRepository)
         {
-            _context = context;
+            _orderItemRepository = orderItemRepository;
         }
 
         public async Task<IEnumerable<OrderItem>> GetAllOrderItems()
         {
-            var orderItems = await _context.OrderItens
-                .Include(orderItem => orderItem.Order)
-                .Include(orderItem => orderItem.Product)
-                .ToListAsync();
-
-            return orderItems;
+            return await _orderItemRepository.GetAllOrderItemsAsync();
         }
     }
 }

@@ -1,44 +1,31 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
+using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
 using FluentValidation;
-using Infra.Data;
-using Infra.Extensions;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application.Services
 {
     public class OrderService : IOrderService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IOrderRepository _orderRepository;
         private readonly IValidator<Order> _orderValidator;
 
-        public OrderService(ApplicationDbContext context, IValidator<Order> orderValidator)
+        public OrderService(IOrderRepository orderRepository, IValidator<Order> orderValidator)
         {
-            _context = context;
+            _orderRepository = orderRepository;
             _orderValidator = orderValidator;
         }
 
         public async Task<IEnumerable<Order>> GetAllOrders()
         {
-            return await _context.Orders
-                .WhereActive()
-                .OrderBy(order => order.OrderDate)
-                .Include(order => order.Client)
-                .Include(order => order.OrderItens)
-                .ToListAsync();
+            return await _orderRepository.GetAllOrdersAsync();
         }
 
         public async Task<Order> GetOrderById(int id)
         {
-            var order = await _context.Orders
-                .WhereActive()
-                .Include(order => order.Client)
-                .Include(order => order.OrderItens)
-                .FirstOrDefaultAsync(order => order.Id == id);
-
-            return order ?? throw new NotFoundException($"Order not found by ID: {id}");
+            return await _orderRepository.GetOrderByIdAsync(id) ?? throw new NotFoundException($"Order not found by ID: {id}");
         }
 
         public async Task<Order> CreateOrder(OrderRequestModel orderRequestModel)
@@ -55,15 +42,13 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-
+            await _orderRepository.AddOrderAsync(order);
             return order;
         }
 
         public async Task UpdateOrder(int id, OrderRequestModel orderRequestModel)
         {
-            var order = await GetOrderById(id) ?? throw new NotFoundException($"Order not found by ID: {id}");
+            var order = await GetOrderById(id);
 
             order.OrderDate = orderRequestModel.OrderDate;
             order.TotalValue = orderRequestModel.TotalValue;
@@ -74,19 +59,13 @@ namespace Application.Services
             if (!validationResult.IsValid)
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            _context.Entry(order).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+            await _orderRepository.UpdateOrderAsync(order);
         }
 
         public async Task DeleteOrder(int id)
         {
-            var order = await GetOrderById(id) ?? throw new NotFoundException($"Order not found by ID: {id}");
-
-            order.IsActive = false;
-            order.DeletedAt = DateTime.UtcNow;
-
-            _context.Orders.Update(order);
-            await _context.SaveChangesAsync();
+            var order = await GetOrderById(id);
+            await _orderRepository.DeleteOrderAsync(order);
         }
     }
 }
