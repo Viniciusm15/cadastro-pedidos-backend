@@ -22,9 +22,6 @@ namespace Domain.Validators
 
             RuleFor(product => product.CategoryId)
                 .GreaterThan(0).WithMessage("Category ID is required");
-
-            RuleFor(product => product.Category)
-                .NotNull().WithMessage("Category is required");
         }
     }
 }

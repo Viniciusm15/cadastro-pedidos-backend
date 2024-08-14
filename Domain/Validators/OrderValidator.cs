@@ -16,13 +16,6 @@ namespace Domain.Validators
 
             RuleFor(order => order.ClientId)
                 .GreaterThan(0).WithMessage("Client ID is required");
-
-            RuleFor(order => order.Client)
-                .NotNull().WithMessage("Client is required");
-
-            RuleFor(order => order.OrderItens)
-                .NotEmpty().WithMessage("Order must have at least one item")
-                .ForEach(item => item.SetValidator(new OrderItemValidator()));
         }
     }
 }
