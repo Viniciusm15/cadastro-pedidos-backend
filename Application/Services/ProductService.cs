@@ -4,32 +4,51 @@ using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services
 {
     public class ProductService : IProductService
     {
+        private readonly ILogger<ProductService> _logger;
         private readonly IProductRepository _productRepository;
         private readonly IValidator<Product> _productValidator;
 
-        public ProductService(IProductRepository productRepository, IValidator<Product> productValidator)
+        public ProductService(ILogger<ProductService>logger, IProductRepository productRepository, IValidator<Product> productValidator)
         {
+            _logger = logger;
             _productRepository = productRepository;
             _productValidator = productValidator;
         }
 
         public async Task<IEnumerable<Product>> GetProducts()
         {
-            return await _productRepository.GetProductsAsync();
+            _logger.LogInformation("Retrieving all products");
+            var products = await _productRepository.GetProductsAsync();
+
+            _logger.LogInformation("Retrieved {ProductCount} products", products.Count());
+            return products;
         }
 
         public async Task<Product> GetProductById(int id)
         {
-            return await _productRepository.GetProductByIdAsync(id) ?? throw new NotFoundException($"Product not found by ID: {id}");
+            _logger.LogInformation("Starting product search with ID {Id}", id);
+            var product = await _productRepository.GetProductByIdAsync(id);
+
+            if (product == null)
+            {
+                _logger.LogError("Product not found by ID: {Id}", id);
+                throw new NotFoundException($"Product not found by ID: {id}");
+            }
+
+            _logger.LogInformation("Product found by ID: {ProductId}", product.Id);
+            return product;
         }
 
         public async Task<Product> CreateProduct(ProductRequestModel productRequestModel)
         {
+            _logger.LogInformation("Starting product creation with request data: {ProductRequest}", productRequestModel);
+
             var product = new Product
             {
                 Name = productRequestModel.Name,
@@ -42,14 +61,20 @@ namespace Application.Services
             var validationResult = _productValidator.Validate(product);
 
             if (!validationResult.IsValid)
+            {
+                _logger.LogError("Product creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+            }
 
             await _productRepository.CreateAsync(product);
+
+            _logger.LogInformation("Product created with ID: {ProductId}", product.Id);
             return product;
         }
 
         public async Task UpdateProduct(int id, ProductRequestModel productRequestModel)
         {
+            _logger.LogInformation("Starting product update with request data: {ProductRequest}", productRequestModel);
             var product = await GetProductById(id);
 
             product.Name = productRequestModel.Name;
@@ -61,13 +86,19 @@ namespace Application.Services
             var validationResult = _productValidator.Validate(product);
 
             if (!validationResult.IsValid)
+            {
+                _logger.LogError("Product update failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+            }
 
             await _productRepository.UpdateAsync(product);
+            _logger.LogInformation("Product updated with ID: {ProductId}", id);
         }
 
         public async Task DeleteProduct(int id)
         {
+            _logger.LogInformation("Deleting product with ID: {Id}", id);
+
             var product = await GetProductById(id);
             await _productRepository.DeleteAsync(product);
         }
