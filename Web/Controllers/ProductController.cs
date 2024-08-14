@@ -2,6 +2,7 @@
 using Common.Exceptions;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
@@ -23,7 +24,7 @@ namespace Web.Controllers
         /// <returns>Uma lista de produtos.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+        public async Task<ActionResult<IEnumerable<ProductResponseModel>>> GetProducts()
         {
             try
             {
@@ -46,7 +47,7 @@ namespace Web.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<Product>> GetProductById(int id)
+        public async Task<ActionResult<ProductResponseModel>> GetProductById(int id)
         {
             try
             {
@@ -71,12 +72,12 @@ namespace Web.Controllers
         /// <response code="201">Produto adicionado com sucesso.</response>
         [HttpPost]
         [ProducesResponseType(201)]
-        public async Task<ActionResult<Product>> PostProduct(ProductRequestModel productRequestModel)
+        public async Task<ActionResult<ProductResponseModel>> PostProduct(ProductRequestModel productRequestModel)
         {
             try
             {
                 var product = await _productService.CreateProduct(productRequestModel);
-                return CreatedAtAction("GetProductById", new { id = product.Id }, product);
+                return CreatedAtAction("GetProductById", new { id = product.ProductId}, product);
             }
             catch (ValidationException ex)
             {

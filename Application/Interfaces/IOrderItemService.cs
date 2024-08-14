@@ -1,9 +1,9 @@
-﻿using Domain.Models.Entities;
+﻿using Domain.Models.ResponseModels;
 
 namespace Application.Interfaces
 {
     public interface IOrderItemService
     {
-        Task<IEnumerable<OrderItem>> GetAllOrderItems();
+        Task<IEnumerable<OrderItemResponseModel>> GetAllOrderItems();
     }
 }

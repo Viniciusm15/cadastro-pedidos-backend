@@ -1,7 +1,7 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
-using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
@@ -23,7 +23,7 @@ namespace Web.Controllers
         /// <returns>Uma lista de pedidos.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<OrderResponseModel>>> GetOrders()
         {
             try
             {
@@ -46,7 +46,7 @@ namespace Web.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<Order>> GetOrderById(int id)
+        public async Task<ActionResult<OrderResponseModel>> GetOrderById(int id)
         {
             try
             {
@@ -71,12 +71,12 @@ namespace Web.Controllers
         /// <response code="201">Pedido adicionado com sucesso.</response>
         [HttpPost]
         [ProducesResponseType(201)]
-        public async Task<ActionResult<Order>> PostOrder(OrderRequestModel orderRequestModel)
+        public async Task<ActionResult<OrderResponseModel>> PostOrder(OrderRequestModel orderRequestModel)
         {
             try
             {
                 var order = await _orderService.CreateOrder(orderRequestModel);
-                return CreatedAtAction("GetOrderById", new { id = order.Id }, order);
+                return CreatedAtAction("GetOrderById", new { id = order.OrderId }, order);
             }
             catch (ValidationException ex)
             {

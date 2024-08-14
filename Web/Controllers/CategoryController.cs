@@ -2,6 +2,7 @@
 using Common.Exceptions;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
@@ -23,7 +24,7 @@ namespace Web.Controllers
         /// <returns>Uma lista de categorias.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoryResponseModel>>> GetCategories()
         {
             try
             {
@@ -46,7 +47,7 @@ namespace Web.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<Category>> GetCategoryById(int id)
+        public async Task<ActionResult<CategoryResponseModel>> GetCategoryById(int id)
         {
             try
             {
@@ -71,12 +72,12 @@ namespace Web.Controllers
         /// <response code="201">Categoria adicionada com sucesso.</response>
         [HttpPost]
         [ProducesResponseType(201)]
-        public async Task<ActionResult<Category>> PostCategory(CategoryRequestModel categoryRequestModel)
+        public async Task<ActionResult<CategoryResponseModel>> PostCategory(CategoryRequestModel categoryRequestModel)
         {
             try
             {
-                var newCategory = await _categoryService.CreateCategory(categoryRequestModel);
-                return CreatedAtAction("GetCategoryById", new { id = newCategory.Id }, newCategory);
+                var category = await _categoryService.CreateCategory(categoryRequestModel);
+                return CreatedAtAction("GetCategoryById", new { id = category.CategoryId }, category);
             }
             catch (ValidationException ex)
             {

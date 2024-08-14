@@ -1,10 +1,8 @@
-﻿namespace Domain.Models.RequestModels
+﻿using Domain.Models.Base;
+
+namespace Domain.Models.RequestModels
 {
-    public class ClientRequestModel
+    public class ClientRequestModel : ClientBaseModel
     {
-        public required string Name { get; set; }
-        public required string Email { get; set; }
-        public required string Telephone { get; set; }
-        public DateTime BirthDate { get; set; }
     }
 }

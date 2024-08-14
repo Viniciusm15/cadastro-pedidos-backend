@@ -1,8 +1,8 @@
-﻿namespace Domain.Models.RequestModels
+﻿using Domain.Models.Base;
+
+namespace Domain.Models.RequestModels
 {
-    public class CategoryRequestModel
+    public class CategoryRequestModel : CategoryBaseModel
     {
-        public required string Name { get; set; }
-        public required string Description { get; set; }
     }
 }

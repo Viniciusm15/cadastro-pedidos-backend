@@ -3,6 +3,7 @@ using Common.Exceptions;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using Domain.Models.ResponseModels;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 
@@ -21,16 +22,21 @@ namespace Application.Services
             _categoryValidator = categoryValidator;
         }
 
-        public async Task<IEnumerable<Category>> GetAllCategories()
+        public async Task<IEnumerable<CategoryResponseModel>> GetAllCategories()
         {
             _logger.LogInformation("Retrieving all categories");
             var categories = await _categoryRepository.GetAllCategoriesAsync();
 
             _logger.LogInformation("Retrieved {CategoryCount} categories", categories.Count());
-            return categories;
+            return categories.Select(category=> new CategoryResponseModel
+            {
+                CategoryId = category.Id,
+                Name = category.Name,
+                Description = category.Description
+            });
         }
 
-        public async Task<Category> GetCategoryById(int id)
+        public async Task<CategoryResponseModel> GetCategoryById(int id)
         {
             _logger.LogInformation("Starting category search with ID {Id}", id);
             var category = await _categoryRepository.GetCategoryByIdAsync(id);
@@ -42,10 +48,15 @@ namespace Application.Services
             }
 
             _logger.LogInformation("Category found by ID: {CategoryId}", category.Id);
-            return category;
+            return new CategoryResponseModel
+            {
+                CategoryId = category.Id,
+                Name = category.Name,
+                Description = category.Description
+            };
         }
 
-        public async Task<Category> CreateCategory(CategoryRequestModel categoryRequestModel)
+        public async Task<CategoryResponseModel> CreateCategory(CategoryRequestModel categoryRequestModel)
         {
             _logger.LogInformation("Starting category creation with request data: {CategoryRequest}", categoryRequestModel);
             var category = new Category
@@ -65,13 +76,28 @@ namespace Application.Services
             await _categoryRepository.CreateAsync(category);
 
             _logger.LogInformation("Category created with ID: {CategoryId}", category.Id);
-            return category;
+            return new CategoryResponseModel
+            {
+                CategoryId = category.Id,
+                Name = category.Name,
+                Description = category.Description
+            };
         }
 
         public async Task UpdateCategory(int id, CategoryRequestModel categoryRequestModel)
         {
             _logger.LogInformation("Starting category update with request data: {CategoryRequest}", categoryRequestModel);
-            var category = await GetCategoryById(id);
+
+            _logger.LogInformation("Starting category search with ID {Id}", id);
+            var category = await _categoryRepository.GetCategoryByIdAsync(id);
+
+            if (category == null)
+            {
+                _logger.LogError("Category not found by ID: {Id}", id);
+                throw new NotFoundException($"Category not found by ID: {id}");
+            }
+
+            _logger.LogInformation("Category found by ID: {CategoryId}", category.Id);
 
             category.Name = categoryRequestModel.Name;
             category.Description = categoryRequestModel.Description;
@@ -92,7 +118,16 @@ namespace Application.Services
         {
             _logger.LogInformation("Deleting category with ID: {Id}", id);
 
-            var category = await GetCategoryById(id);
+            _logger.LogInformation("Starting category search with ID {Id}", id);
+            var category = await _categoryRepository.GetCategoryByIdAsync(id);
+
+            if (category == null)
+            {
+                _logger.LogError("Category not found by ID: {Id}", id);
+                throw new NotFoundException($"Category not found by ID: {id}");
+            }
+
+            _logger.LogInformation("Category found by ID: {CategoryId}", category.Id);
             await _categoryRepository.DeleteAsync(category);
         }
     }

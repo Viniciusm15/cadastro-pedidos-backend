@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Domain.Models.Entities;
+using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
@@ -21,7 +22,7 @@ namespace Web.Controllers
         /// <returns>Uma lista de itens de pedido.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<OrderItem>>> GetOrderItems()
+        public async Task<ActionResult<IEnumerable<OrderItemResponseModel>>> GetOrderItems()
         {
             try
             {

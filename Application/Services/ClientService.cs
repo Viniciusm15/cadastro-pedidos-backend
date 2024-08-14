@@ -3,6 +3,7 @@ using Common.Exceptions;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using Domain.Models.ResponseModels;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 
@@ -21,16 +22,23 @@ namespace Application.Services
             _clientValidator = clientValidator;
         }
 
-        public async Task<IEnumerable<Client>> GetAllClients()
+        public async Task<IEnumerable<ClientResponseModel>> GetAllClients()
         {
             _logger.LogInformation("Retrieving all clients");
             var clients = await _clientRepository.GetAllClientsAsync();
 
             _logger.LogInformation("Retrieved {ClientsCount} clients", clients.Count());
-            return clients;
+            return clients.Select(client => new ClientResponseModel
+            {
+                ClientId = client.Id,
+                Name = client.Name,
+                Email = client.Email,
+                Telephone = client.Telephone,
+                BirthDate = client.BirthDate
+            });
         }
 
-        public async Task<Client> GetClientById(int id)
+        public async Task<ClientResponseModel> GetClientById(int id)
         {
             _logger.LogInformation("Starting client search with ID {Id}", id);
             var client = await _clientRepository.GetClientByIdAsync(id);
@@ -42,10 +50,17 @@ namespace Application.Services
             }
 
             _logger.LogInformation("Client found by ID: {ClientId}", client.Id);
-            return client;
+            return new ClientResponseModel
+            {
+                ClientId = client.Id,
+                Name = client.Name,
+                Email = client.Email,
+                Telephone = client.Telephone,
+                BirthDate = client.BirthDate
+            };
         }
 
-        public async Task<Client> CreateClient(ClientRequestModel clientRequestModel)
+        public async Task<ClientResponseModel> CreateClient(ClientRequestModel clientRequestModel)
         {
             _logger.LogInformation("Starting client creation with request data: {ClientRequest}", clientRequestModel);
             var client = new Client
@@ -67,13 +82,30 @@ namespace Application.Services
             await _clientRepository.CreateAsync(client);
 
             _logger.LogInformation("Client created with ID: {ClientId}", client.Id);
-            return client;
+            return new ClientResponseModel
+            {
+                ClientId = client.Id,
+                Name = client.Name,
+                Email = client.Email,
+                Telephone = client.Telephone,
+                BirthDate = client.BirthDate
+            };
         }
 
         public async Task UpdateClient(int id, ClientRequestModel clientRequestModel)
         {
             _logger.LogInformation("Starting client update with request data: {ClientRequest}", clientRequestModel);
-            var client = await GetClientById(id);
+
+            _logger.LogInformation("Starting client search with ID {Id}", id);
+            var client = await _clientRepository.GetClientByIdAsync(id);
+
+            if (client == null)
+            {
+                _logger.LogError("Client not found by ID: {Id}", id);
+                throw new NotFoundException($"Client not found by ID: {id}");
+            }
+
+            _logger.LogInformation("Client found by ID: {ClientId}", client.Id);
 
             client.Name = clientRequestModel.Name;
             client.Email = clientRequestModel.Email;
@@ -96,7 +128,16 @@ namespace Application.Services
         {
             _logger.LogInformation("Deleting client with ID: {Id}", id);
 
-            var client = await GetClientById(id);
+            _logger.LogInformation("Starting client search with ID {Id}", id);
+            var client = await _clientRepository.GetClientByIdAsync(id);
+
+            if (client == null)
+            {
+                _logger.LogError("Client not found by ID: {Id}", id);
+                throw new NotFoundException($"Client not found by ID: {id}");
+            }
+
+            _logger.LogInformation("Client found by ID: {ClientId}", client.Id);
             await _clientRepository.DeleteAsync(client);
         }
     }

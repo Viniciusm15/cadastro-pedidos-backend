@@ -1,8 +1,7 @@
 ﻿using Application.Interfaces;
-using Application.Services;
 using Common.Exceptions;
-using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
@@ -24,7 +23,7 @@ namespace Web.Controllers
         /// <returns>Uma lista de clientes.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<Client>>> GetClients()
+        public async Task<ActionResult<IEnumerable<ClientResponseModel>>> GetClients()
         {
             try
             {
@@ -47,7 +46,7 @@ namespace Web.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<Client>> GetClientById(int id)
+        public async Task<ActionResult<ClientResponseModel>> GetClientById(int id)
         {
             try
             {
@@ -72,12 +71,12 @@ namespace Web.Controllers
         /// <response code="201">Cliente adicionado com sucesso.</response>
         [HttpPost]
         [ProducesResponseType(201)]
-        public async Task<ActionResult<Client>> PostClient(ClientRequestModel clientRequestModel)
+        public async Task<ActionResult<ClientResponseModel>> PostClient(ClientRequestModel clientRequestModel)
         {
             try
             {
                 var client = await _clientService.CreateClient(clientRequestModel);
-                return CreatedAtAction("GetClientById", new { id = client.Id }, client);
+                return CreatedAtAction("GetClientById", new { id = client.ClientId }, client);
             }
             catch (ValidationException ex)
             {

@@ -3,6 +3,7 @@ using Common.Exceptions;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
+using Domain.Models.ResponseModels;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 
@@ -14,23 +15,31 @@ namespace Application.Services
         private readonly IProductRepository _productRepository;
         private readonly IValidator<Product> _productValidator;
 
-        public ProductService(ILogger<ProductService>logger, IProductRepository productRepository, IValidator<Product> productValidator)
+        public ProductService(ILogger<ProductService> logger, IProductRepository productRepository, IValidator<Product> productValidator)
         {
             _logger = logger;
             _productRepository = productRepository;
             _productValidator = productValidator;
         }
 
-        public async Task<IEnumerable<Product>> GetProducts()
+        public async Task<IEnumerable<ProductResponseModel>> GetProducts()
         {
             _logger.LogInformation("Retrieving all products");
             var products = await _productRepository.GetProductsAsync();
 
             _logger.LogInformation("Retrieved {ProductCount} products", products.Count());
-            return products;
+            return products.Select(product => new ProductResponseModel
+            {
+                ProductId = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                StockQuantity = product.StockQuantity,
+                CategoryId = product.CategoryId
+            });
         }
 
-        public async Task<Product> GetProductById(int id)
+        public async Task<ProductResponseModel> GetProductById(int id)
         {
             _logger.LogInformation("Starting product search with ID {Id}", id);
             var product = await _productRepository.GetProductByIdAsync(id);
@@ -42,10 +51,18 @@ namespace Application.Services
             }
 
             _logger.LogInformation("Product found by ID: {ProductId}", product.Id);
-            return product;
+            return new ProductResponseModel
+            {
+                ProductId = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                StockQuantity = product.StockQuantity,
+                CategoryId = product.CategoryId
+            };
         }
 
-        public async Task<Product> CreateProduct(ProductRequestModel productRequestModel)
+        public async Task<ProductResponseModel> CreateProduct(ProductRequestModel productRequestModel)
         {
             _logger.LogInformation("Starting product creation with request data: {ProductRequest}", productRequestModel);
 
@@ -69,13 +86,31 @@ namespace Application.Services
             await _productRepository.CreateAsync(product);
 
             _logger.LogInformation("Product created with ID: {ProductId}", product.Id);
-            return product;
+            return new ProductResponseModel
+            {
+                ProductId = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                StockQuantity = product.StockQuantity,
+                CategoryId = product.CategoryId
+            };
         }
 
         public async Task UpdateProduct(int id, ProductRequestModel productRequestModel)
         {
             _logger.LogInformation("Starting product update with request data: {ProductRequest}", productRequestModel);
-            var product = await GetProductById(id);
+
+            _logger.LogInformation("Starting product search with ID {Id}", id);
+            var product = await _productRepository.GetProductByIdAsync(id);
+
+            if (product == null)
+            {
+                _logger.LogError("Product not found by ID: {Id}", id);
+                throw new NotFoundException($"Product not found by ID: {id}");
+            }
+
+            _logger.LogInformation("Product found by ID: {ProductId}", product.Id);
 
             product.Name = productRequestModel.Name;
             product.Description = productRequestModel.Description;
@@ -99,7 +134,16 @@ namespace Application.Services
         {
             _logger.LogInformation("Deleting product with ID: {Id}", id);
 
-            var product = await GetProductById(id);
+            _logger.LogInformation("Starting product search with ID {Id}", id);
+            var product = await _productRepository.GetProductByIdAsync(id);
+
+            if (product == null)
+            {
+                _logger.LogError("Product not found by ID: {Id}", id);
+                throw new NotFoundException($"Product not found by ID: {id}");
+            }
+
+            _logger.LogInformation("Product found by ID: {ProductId}", product.Id);
             await _productRepository.DeleteAsync(product);
         }
     }
