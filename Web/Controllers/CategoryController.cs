@@ -1,6 +1,6 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
-using Domain.Models.Entities;
+using Common.Models;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
@@ -19,17 +19,19 @@ namespace Web.Controllers
         }
 
         /// <summary>
-        /// Retorna todas as categorias.
+        /// Retorna uma lista paginada de categorias.
         /// </summary>
-        /// <returns>Uma lista de categorias.</returns>
+        /// <param name="pageNumber">Número da página desejada (padrão é 1).</param>
+        /// <param name="pageSize">Quantidade de itens por página (padrão é 10).</param>
+        /// <returns>Uma lista paginada de categorias com o total de itens.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<CategoryResponseModel>>> GetCategories()
+        public async Task<ActionResult<PagedResult<CategoryResponseModel>>> GetCategories(int pageNumber = 1, int pageSize = 10)
         {
             try
             {
-                var categories = await _categoryService.GetAllCategories();
-                return Ok(categories);
+                var pagedCategories = await _categoryService.GetAllCategories(pageNumber, pageSize);
+                return Ok(pagedCategories);
             }
             catch (Exception ex)
             {

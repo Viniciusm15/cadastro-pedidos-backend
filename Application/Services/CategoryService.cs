@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
+using Common.Models;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
@@ -22,18 +23,23 @@ namespace Application.Services
             _categoryValidator = categoryValidator;
         }
 
-        public async Task<IEnumerable<CategoryResponseModel>> GetAllCategories()
+        public async Task<PagedResult<CategoryResponseModel>> GetAllCategories(int pageNumber, int pageSize)
         {
-            _logger.LogInformation("Retrieving all categories");
-            var categories = await _categoryRepository.GetAllCategoriesAsync();
+            _logger.LogInformation("Retrieving categories for page {PageNumber} with size {PageSize}", pageNumber, pageSize);
 
-            _logger.LogInformation("Retrieved {CategoryCount} categories", categories.Count());
-            return categories.Select(category=> new CategoryResponseModel
+            var pagedCategories = await _categoryRepository.GetAllCategoriesAsync(pageNumber, pageSize);
+
+            var categoryModels = pagedCategories.Items.Select(category => new CategoryResponseModel
             {
                 CategoryId = category.Id,
                 Name = category.Name,
-                Description = category.Description
-            });
+                Description = category.Description,
+                ProductCount = category.Products.Count
+            }).ToList();
+
+            _logger.LogInformation("Retrieved {CategoryCount} categories on page {PageNumber}", categoryModels.Count, pageNumber);
+
+            return new PagedResult<CategoryResponseModel>(categoryModels, pagedCategories.TotalCount);
         }
 
         public async Task<CategoryResponseModel> GetCategoryById(int id)
@@ -52,7 +58,8 @@ namespace Application.Services
             {
                 CategoryId = category.Id,
                 Name = category.Name,
-                Description = category.Description
+                Description = category.Description,
+                ProductCount = category.Products.Count
             };
         }
 
@@ -80,7 +87,8 @@ namespace Application.Services
             {
                 CategoryId = category.Id,
                 Name = category.Name,
-                Description = category.Description
+                Description = category.Description,
+                ProductCount = category.Products.Count
             };
         }
 
