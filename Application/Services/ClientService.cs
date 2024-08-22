@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
+using Common.Models;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
@@ -22,20 +23,30 @@ namespace Application.Services
             _clientValidator = clientValidator;
         }
 
-        public async Task<IEnumerable<ClientResponseModel>> GetAllClients()
+        public async Task<PagedResult<ClientResponseModel>> GetAllClients(int pageNumber, int pageSize)
         {
-            _logger.LogInformation("Retrieving all clients");
-            var clients = await _clientRepository.GetAllClientsAsync();
+            _logger.LogInformation("Retrieving clients for page {PageNumber} with size {PageSize}", pageNumber, pageSize);
+            var pagedClients = await _clientRepository.GetAllClientsAsync(pageNumber, pageSize);
 
-            _logger.LogInformation("Retrieved {ClientsCount} clients", clients.Count());
-            return clients.Select(client => new ClientResponseModel
+            var clientModels = pagedClients.Items.Select(client => new ClientResponseModel
             {
                 ClientId = client.Id,
                 Name = client.Name,
                 Email = client.Email,
                 Telephone = client.Telephone,
-                BirthDate = client.BirthDate
-            });
+                BirthDate = client.BirthDate,
+                PurchaseHistory = client.Orders.Select(order => new OrderResponseModel
+                {
+                    OrderId = order.Id,
+                    OrderDate = order.OrderDate,
+                    TotalValue = order.TotalValue,
+                    ClientId = client.Id,
+                }).ToList()
+            }).ToList();
+
+            _logger.LogInformation("Retrieved {ClientsCount} clients on page {PageNumber}", clientModels.Count, pageNumber);
+
+            return new PagedResult<ClientResponseModel>(clientModels, pagedClients.TotalCount);
         }
 
         public async Task<ClientResponseModel> GetClientById(int id)
@@ -56,7 +67,14 @@ namespace Application.Services
                 Name = client.Name,
                 Email = client.Email,
                 Telephone = client.Telephone,
-                BirthDate = client.BirthDate
+                BirthDate = client.BirthDate,
+                PurchaseHistory = client.Orders.Select(order => new OrderResponseModel
+                {
+                    OrderId = order.Id,
+                    OrderDate = order.OrderDate,
+                    TotalValue = order.TotalValue,
+                    ClientId = client.Id,
+                }).ToList()
             };
         }
 
@@ -88,7 +106,14 @@ namespace Application.Services
                 Name = client.Name,
                 Email = client.Email,
                 Telephone = client.Telephone,
-                BirthDate = client.BirthDate
+                BirthDate = client.BirthDate,
+                PurchaseHistory = client.Orders.Select(order => new OrderResponseModel
+                {
+                    OrderId = order.Id,
+                    OrderDate = order.OrderDate,
+                    TotalValue = order.TotalValue,
+                    ClientId = client.Id,
+                }).ToList()
             };
         }
 

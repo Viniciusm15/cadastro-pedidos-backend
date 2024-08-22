@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
+using Common.Models;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
@@ -23,12 +24,12 @@ namespace Web.Controllers
         /// <returns>Uma lista de clientes.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<ClientResponseModel>>> GetClients()
+        public async Task<ActionResult<PagedResult<ClientResponseModel>>> GetClients(int pageNumber = 1, int pageSize = 10)
         {
             try
             {
-                var clients = await _clientService.GetAllClients();
-                return Ok(clients);
+                var pagedClients = await _clientService.GetAllClients(pageNumber, pageSize);
+                return Ok(pagedClients);
             }
             catch (Exception ex)
             {
