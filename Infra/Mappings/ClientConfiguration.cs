@@ -20,9 +20,17 @@ namespace Infra.Mappings
                 .IsRequired()
                 .HasMaxLength(256);
 
+            builder.HasIndex(c => new { c.Email, c.IsActive })
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
+
             builder.Property(c => c.Telephone)
                 .IsRequired()
                 .HasMaxLength(20);
+
+            builder.HasIndex(c => new { c.Telephone, c.IsActive })
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
 
             builder.Property(c => c.BirthDate)
                 .HasColumnType("date");

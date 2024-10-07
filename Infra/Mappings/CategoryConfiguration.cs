@@ -16,6 +16,10 @@ namespace Infra.Mappings
                 .IsRequired()
                 .HasMaxLength(100);
 
+            builder.HasIndex(c => new { c.Name, c.IsActive })
+                .IsUnique()
+                .HasFilter("[IsActive] = 1"); 
+
             builder.Property(c => c.Description)
                 .IsRequired();
         }
