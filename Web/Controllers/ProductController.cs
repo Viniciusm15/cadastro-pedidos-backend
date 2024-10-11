@@ -1,4 +1,5 @@
 ﻿using Application.Interfaces;
+using Application.Services;
 using Common.Exceptions;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
@@ -24,12 +25,12 @@ namespace Web.Controllers
         /// <returns>Uma lista de produtos.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<ProductResponseModel>>> GetProducts()
+        public async Task<ActionResult<IEnumerable<ProductResponseModel>>> GetProducts(int pageNumber = 1, int pageSize = 10)
         {
             try
             {
-                var products = await _productService.GetProducts();
-                return Ok(products);
+                var pagedProducts = await _productService.GetAllProducts(pageNumber, pageSize);
+                return Ok(pagedProducts);
             }
             catch (Exception ex)
             {

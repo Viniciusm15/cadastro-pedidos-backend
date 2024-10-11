@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
+using Common.Models;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
@@ -22,13 +23,13 @@ namespace Application.Services
             _productValidator = productValidator;
         }
 
-        public async Task<IEnumerable<ProductResponseModel>> GetProducts()
+        public async Task<PagedResult<ProductResponseModel>> GetAllProducts(int pageNumber, int pageSize)
         {
-            _logger.LogInformation("Retrieving all products");
-            var products = await _productRepository.GetProductsAsync();
+            _logger.LogInformation("Retrieving products for page {PageNumber} with size {PageSize}", pageNumber, pageSize);
 
-            _logger.LogInformation("Retrieved {ProductCount} products", products.Count());
-            return products.Select(product => new ProductResponseModel
+            var pagedProducts = await _productRepository.GetAllProductsAsync(pageNumber, pageSize);
+
+            var productModels = pagedProducts.Items.Select(product => new ProductResponseModel
             {
                 ProductId = product.Id,
                 Name = product.Name,
@@ -36,7 +37,11 @@ namespace Application.Services
                 Price = product.Price,
                 StockQuantity = product.StockQuantity,
                 CategoryId = product.CategoryId
-            });
+            }).ToList();
+
+            _logger.LogInformation("Retrieved {ProductCount} products on page {PageNumber}", productModels.Count, pageNumber);
+
+            return new PagedResult<ProductResponseModel>(productModels, pagedProducts.TotalCount);
         }
 
         public async Task<ProductResponseModel> GetProductById(int id)
@@ -72,7 +77,7 @@ namespace Application.Services
                 Description = productRequestModel.Description,
                 Price = productRequestModel.Price,
                 StockQuantity = productRequestModel.StockQuantity,
-                CategoryId = productRequestModel.CategoryId
+                CategoryId = productRequestModel.CategoryId,
             };
 
             var validationResult = _productValidator.Validate(product);
