@@ -55,7 +55,7 @@ namespace Application.Services
                 OrderDate = order.OrderDate,
                 TotalValue = order.TotalValue,
                 ClientId = order.ClientId
-            }; 
+            };
         }
 
         public async Task<OrderResponseModel> CreateOrder(OrderRequestModel orderRequestModel)
@@ -122,8 +122,6 @@ namespace Application.Services
         public async Task DeleteOrder(int id)
         {
             _logger.LogInformation("Deleting order with ID: {Id}", id);
-
-            _logger.LogInformation("Starting order search with ID {Id}", id);
             var order = await _orderRepository.GetOrderByIdAsync(id);
 
             if (order == null)
@@ -132,8 +130,8 @@ namespace Application.Services
                 throw new NotFoundException($"Order not found by ID: {id}");
             }
 
-            _logger.LogInformation("Order found by ID: {OrderId}", order.Id);
             await _orderRepository.DeleteAsync(order);
+            _logger.LogInformation("Order deleted with ID: {ProductId}", id);
         }
     }
 }

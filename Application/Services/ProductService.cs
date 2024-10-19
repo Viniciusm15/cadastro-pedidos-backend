@@ -15,18 +15,19 @@ namespace Application.Services
         private readonly ILogger<ProductService> _logger;
         private readonly IProductRepository _productRepository;
         private readonly IValidator<Product> _productValidator;
+        private readonly IImageService _imageService;
 
-        public ProductService(ILogger<ProductService> logger, IProductRepository productRepository, IValidator<Product> productValidator)
+        public ProductService(ILogger<ProductService> logger, IProductRepository productRepository, IValidator<Product> productValidator, IImageService imageService)
         {
             _logger = logger;
             _productRepository = productRepository;
             _productValidator = productValidator;
+            _imageService = imageService;
         }
 
         public async Task<PagedResult<ProductResponseModel>> GetAllProducts(int pageNumber, int pageSize)
         {
             _logger.LogInformation("Retrieving products for page {PageNumber} with size {PageSize}", pageNumber, pageSize);
-
             var pagedProducts = await _productRepository.GetAllProductsAsync(pageNumber, pageSize);
 
             var productModels = pagedProducts.Items.Select(product => new ProductResponseModel
@@ -36,7 +37,8 @@ namespace Application.Services
                 Description = product.Description,
                 Price = product.Price,
                 StockQuantity = product.StockQuantity,
-                CategoryId = product.CategoryId
+                CategoryId = product.CategoryId,
+                ImageId = product.ImageId,
             }).ToList();
 
             _logger.LogInformation("Retrieved {ProductCount} products on page {PageNumber}", productModels.Count, pageNumber);
@@ -63,7 +65,8 @@ namespace Application.Services
                 Description = product.Description,
                 Price = product.Price,
                 StockQuantity = product.StockQuantity,
-                CategoryId = product.CategoryId
+                CategoryId = product.CategoryId,
+                ImageId = product.ImageId 
             };
         }
 
@@ -87,6 +90,9 @@ namespace Application.Services
                 _logger.LogError("Product creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
             }
+
+            var image = await _imageService.CreateImage(productRequestModel.Image);
+            product.ImageId = image.ImageId; 
 
             await _productRepository.CreateAsync(product);
 
@@ -123,6 +129,11 @@ namespace Application.Services
             product.StockQuantity = productRequestModel.StockQuantity;
             product.CategoryId = productRequestModel.CategoryId;
 
+            if (productRequestModel.Image != null)
+            {
+                await _imageService.UpdateImage(product.ImageId, productRequestModel.Image);
+            }
+
             var validationResult = _productValidator.Validate(product);
 
             if (!validationResult.IsValid)
@@ -138,8 +149,6 @@ namespace Application.Services
         public async Task DeleteProduct(int id)
         {
             _logger.LogInformation("Deleting product with ID: {Id}", id);
-
-            _logger.LogInformation("Starting product search with ID {Id}", id);
             var product = await _productRepository.GetProductByIdAsync(id);
 
             if (product == null)
@@ -148,8 +157,10 @@ namespace Application.Services
                 throw new NotFoundException($"Product not found by ID: {id}");
             }
 
-            _logger.LogInformation("Product found by ID: {ProductId}", product.Id);
+            await _imageService.DeleteImage(product.ImageId);
+
             await _productRepository.DeleteAsync(product);
+            _logger.LogInformation("Product deleted with ID: {ProductId}", id);
         }
     }
 }

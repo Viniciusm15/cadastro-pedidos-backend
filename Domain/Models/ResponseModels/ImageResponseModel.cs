@@ -2,9 +2,8 @@
 
 namespace Domain.Models.ResponseModels
 {
-    public class ProductResponseModel : ProductBaseModel
+    public class ImageResponseModel : ImageBaseModel
     {
-        public int ProductId { get; set; }
         public int ImageId { get; set; }
     }
 }

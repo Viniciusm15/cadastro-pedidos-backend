@@ -14,12 +14,14 @@ namespace Web.Configs
             services.AddScoped<IOrderItemService, OrderItemService>();
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IImageService, ImageService>();
 
             services.AddValidatorsFromAssemblyContaining<CategoryValidator>();
             services.AddValidatorsFromAssemblyContaining<ClientValidator>();
             services.AddValidatorsFromAssemblyContaining<OrderItemValidator>();
             services.AddValidatorsFromAssemblyContaining<OrderValidator>();
             services.AddValidatorsFromAssemblyContaining<ProductValidator>();
+            services.AddValidatorsFromAssemblyContaining<ImageValidator>();
 
             return services;
         }

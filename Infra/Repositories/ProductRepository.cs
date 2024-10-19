@@ -22,7 +22,8 @@ namespace Infra.Repositories
                .WhereActive()
                .OrderBy(product => product.Name)
                .Include(product => product.Category)
-               .Include(product => product.OrderItens);
+               .Include(product => product.OrderItens)
+               .Include(product => product.Image);
 
             var totalCount = await query.CountAsync();
 
@@ -39,6 +40,7 @@ namespace Infra.Repositories
             return await _context.Products
                 .WhereActive()
                 .Include(product => product.Category)
+                .Include(product => product.Image)
                 .Include(product => product.OrderItens)
                 .FirstOrDefaultAsync(product => product.Id == id);
         }

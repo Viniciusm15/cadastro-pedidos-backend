@@ -26,7 +26,6 @@ namespace Application.Services
         public async Task<PagedResult<CategoryResponseModel>> GetAllCategories(int pageNumber, int pageSize)
         {
             _logger.LogInformation("Retrieving categories for page {PageNumber} with size {PageSize}", pageNumber, pageSize);
-
             var pagedCategories = await _categoryRepository.GetAllCategoriesAsync(pageNumber, pageSize);
 
             var categoryModels = pagedCategories.Items.Select(category => new CategoryResponseModel
@@ -125,8 +124,6 @@ namespace Application.Services
         public async Task DeleteCategory(int id)
         {
             _logger.LogInformation("Deleting category with ID: {Id}", id);
-
-            _logger.LogInformation("Starting category search with ID {Id}", id);
             var category = await _categoryRepository.GetCategoryByIdAsync(id);
 
             if (category == null)
@@ -135,8 +132,8 @@ namespace Application.Services
                 throw new NotFoundException($"Category not found by ID: {id}");
             }
 
-            _logger.LogInformation("Category found by ID: {CategoryId}", category.Id);
             await _categoryRepository.DeleteAsync(category);
+            _logger.LogInformation("Category deleted with ID: {ProductId}", id);
         }
     }
 }

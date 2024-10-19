@@ -152,8 +152,6 @@ namespace Application.Services
         public async Task DeleteClient(int id)
         {
             _logger.LogInformation("Deleting client with ID: {Id}", id);
-
-            _logger.LogInformation("Starting client search with ID {Id}", id);
             var client = await _clientRepository.GetClientByIdAsync(id);
 
             if (client == null)
@@ -162,8 +160,8 @@ namespace Application.Services
                 throw new NotFoundException($"Client not found by ID: {id}");
             }
 
-            _logger.LogInformation("Client found by ID: {ClientId}", client.Id);
             await _clientRepository.DeleteAsync(client);
+            _logger.LogInformation("Client deleted with ID: {ProductId}", id);
         }
     }
 }

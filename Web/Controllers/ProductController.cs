@@ -73,7 +73,8 @@ namespace Web.Controllers
         /// <response code="201">Produto adicionado com sucesso.</response>
         [HttpPost]
         [ProducesResponseType(201)]
-        public async Task<ActionResult<ProductResponseModel>> PostProduct(ProductRequestModel productRequestModel)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ProductResponseModel>> PostProduct([FromForm] ProductRequestModel productRequestModel)
         {
             try
             {
