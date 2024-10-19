@@ -30,6 +30,10 @@ namespace Infra.Mappings
             builder.HasOne(p => p.Category)
                 .WithMany(c => c.Products)
                 .HasForeignKey(p => p.CategoryId);
+
+            builder.HasOne(p => p.Image)
+                .WithOne()
+                .HasForeignKey<Product>(p => p.ImageId);
         }
     }
 }
