@@ -1,6 +1,8 @@
-﻿namespace Domain.Models.Entities
+﻿using Domain.Interfaces;
+
+namespace Domain.Models.Entities
 {
-    public class Image : BaseEntity
+    public class Image : BaseEntity, ISoftDeletable
     {
         public required byte[] ImageData { get; set; }
         public required string ImageMimeType { get; set; }

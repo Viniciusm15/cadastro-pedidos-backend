@@ -91,7 +91,7 @@ namespace Application.Services
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
             }
 
-            var image = await _imageService.CreateImage(productRequestModel.Image);
+            var image = await _imageService.CreateImage(productRequestModel.Image, typeof(Product).Name, product.Id);
             product.ImageId = image.ImageId; 
 
             await _productRepository.CreateAsync(product);

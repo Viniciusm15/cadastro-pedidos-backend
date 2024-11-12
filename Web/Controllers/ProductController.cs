@@ -1,7 +1,5 @@
 ﻿using Application.Interfaces;
-using Application.Services;
 using Common.Exceptions;
-using Domain.Models.Entities;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
@@ -79,7 +77,7 @@ namespace Web.Controllers
             try
             {
                 var product = await _productService.CreateProduct(productRequestModel);
-                return CreatedAtAction("GetProductById", new { id = product.ProductId}, product);
+                return CreatedAtAction("GetProductById", new { id = product.ProductId }, product);
             }
             catch (ValidationException ex)
             {

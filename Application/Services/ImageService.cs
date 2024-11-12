@@ -44,7 +44,7 @@ namespace Application.Services
             };
         }
 
-        public async Task<ImageResponseModel> CreateImage(ImageRequestModel imageRequestModel)
+        public async Task<ImageResponseModel> CreateImage(ImageRequestModel imageRequestModel, string entityType, int entityId)
         {
             _logger.LogInformation("Starting image creation with request data: {ImageRequest}", imageRequestModel);
 
@@ -52,7 +52,9 @@ namespace Application.Services
             {
                 Description = imageRequestModel.Description,
                 ImageMimeType = imageRequestModel.ImageMimeType,
-                ImageData = imageRequestModel.ImageData
+                ImageData = imageRequestModel.ImageData,
+                EntityType = entityType, 
+                EntityId = entityId
             };
 
             var validationResult = _imageValidator.Validate(image);
