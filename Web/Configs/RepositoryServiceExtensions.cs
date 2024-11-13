@@ -1,5 +1,6 @@
 ﻿using Domain.Interfaces;
 using Infra.Repositories;
+using Infra.UnitOfWork;
 
 namespace Web.Configs
 {
@@ -14,6 +15,7 @@ namespace Web.Configs
             services.AddScoped<IProductRepository, ProductRepository>();
             services.AddScoped<IImageRepository, ImageRepository>();
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             return services;
         }
