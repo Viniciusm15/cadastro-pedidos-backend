@@ -21,7 +21,7 @@ namespace Infra.Repositories
             var query = _context.Clients
                 .WhereActive()
                 .OrderBy(client => client.Name)
-                .Include(client => client.Orders);
+                .Include(client => client.Orders.Where(client => client.IsActive));
 
             var totalCount = await query.CountAsync();
 
@@ -37,7 +37,7 @@ namespace Infra.Repositories
         {
             return await _context.Clients
                 .WhereActive()
-                .Include(client => client.Orders)
+                .Include(client => client.Orders.Where(client => client.IsActive))
                 .FirstOrDefaultAsync(client => client.Id == id);
         }
     }

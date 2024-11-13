@@ -21,7 +21,7 @@ namespace Infra.Repositories
             var query = _context.Categories
                 .WhereActive()
                 .OrderBy(category => category.Name)
-                .Include(category => category.Products);
+                .Include(category => category.Products.Where(product => product.IsActive));
 
             var totalCount = await query.CountAsync();
 
@@ -37,7 +37,7 @@ namespace Infra.Repositories
         {
             return await _context.Categories
                 .WhereActive()
-                .Include(category => category.Products)
+                .Include(category => category.Products.Where(product => product.IsActive))
                 .FirstOrDefaultAsync(category => category.Id == id);
         }
     }

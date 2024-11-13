@@ -33,7 +33,7 @@ namespace Application.Services
                 CategoryId = category.Id,
                 Name = category.Name,
                 Description = category.Description,
-                ProductCount = category.Products.Count
+                ProductCount = category.Products.Count()
             }).ToList();
 
             _logger.LogInformation("Retrieved {CategoryCount} categories on page {PageNumber}", categoryModels.Count, pageNumber);
