@@ -7,7 +7,7 @@ namespace Application.Interfaces
     {
         Task<ImageResponseModel> GetImageById(int id);
         Task<ImageResponseModel> CreateImage(ImageRequestModel image, string entityType, int entityId);
-        Task UpdateImage(int id, ImageRequestModel image);
+        Task UpdateImage(int id, ImageRequestModel imageRequestModel, int entityId, string entityType);
         Task DeleteImage(int id);
     }
 }

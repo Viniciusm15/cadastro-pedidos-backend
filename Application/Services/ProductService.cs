@@ -16,13 +16,15 @@ namespace Application.Services
         private readonly IProductRepository _productRepository;
         private readonly IValidator<Product> _productValidator;
         private readonly IImageService _imageService;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public ProductService(ILogger<ProductService> logger, IProductRepository productRepository, IValidator<Product> productValidator, IImageService imageService)
+        public ProductService(ILogger<ProductService> logger, IProductRepository productRepository, IValidator<Product> productValidator, IImageService imageService, IUnitOfWork unitOfWork)
         {
             _logger = logger;
             _productRepository = productRepository;
             _productValidator = productValidator;
             _imageService = imageService;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<PagedResult<ProductResponseModel>> GetAllProducts(int pageNumber, int pageSize)
@@ -66,7 +68,7 @@ namespace Application.Services
                 Price = product.Price,
                 StockQuantity = product.StockQuantity,
                 CategoryId = product.CategoryId,
-                ImageId = product.ImageId 
+                ImageId = product.ImageId
             };
         }
 
@@ -74,38 +76,52 @@ namespace Application.Services
         {
             _logger.LogInformation("Starting product creation with request data: {ProductRequest}", productRequestModel);
 
-            var product = new Product
+            await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                Name = productRequestModel.Name,
-                Description = productRequestModel.Description,
-                Price = productRequestModel.Price,
-                StockQuantity = productRequestModel.StockQuantity,
-                CategoryId = productRequestModel.CategoryId,
-            };
+                var image = await _imageService.CreateImage(productRequestModel.Image, typeof(Product).Name, 0);
 
-            var validationResult = _productValidator.Validate(product);
+                var product = new Product
+                {
+                    Name = productRequestModel.Name,
+                    Description = productRequestModel.Description,
+                    Price = productRequestModel.Price,
+                    StockQuantity = productRequestModel.StockQuantity,
+                    CategoryId = productRequestModel.CategoryId,
+                    ImageId = image.ImageId
+                };
 
-            if (!validationResult.IsValid)
-            {
-                _logger.LogError("Product creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-                throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+                var validationResult = _productValidator.Validate(product);
+
+                if (!validationResult.IsValid)
+                {
+                    _logger.LogError("Product creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                    throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+                }
+
+                await _productRepository.CreateAsync(product);
+                _logger.LogInformation("Product created with ID: {ProductId}", product.Id);
+
+                await _imageService.UpdateImage(image.ImageId, productRequestModel.Image, product.Id, typeof(Product).Name);
+
+                await _unitOfWork.CommitAsync();
+
+                return new ProductResponseModel
+                {
+                    ProductId = product.Id,
+                    Name = product.Name,
+                    Description = product.Description,
+                    Price = product.Price,
+                    StockQuantity = product.StockQuantity,
+                    CategoryId = product.CategoryId
+                };
             }
-
-            var image = await _imageService.CreateImage(productRequestModel.Image, typeof(Product).Name, product.Id);
-            product.ImageId = image.ImageId; 
-
-            await _productRepository.CreateAsync(product);
-
-            _logger.LogInformation("Product created with ID: {ProductId}", product.Id);
-            return new ProductResponseModel
+            catch (Exception ex)
             {
-                ProductId = product.Id,
-                Name = product.Name,
-                Description = product.Description,
-                Price = product.Price,
-                StockQuantity = product.StockQuantity,
-                CategoryId = product.CategoryId
-            };
+                _logger.LogError("Product creation failed. Rolling back transaction. Error: {Error}", ex.Message);
+                await _unitOfWork.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task UpdateProduct(int id, ProductRequestModel productRequestModel)
@@ -131,7 +147,7 @@ namespace Application.Services
 
             if (productRequestModel.Image != null)
             {
-                await _imageService.UpdateImage(product.ImageId, productRequestModel.Image);
+                await _imageService.UpdateImage(product.ImageId, productRequestModel.Image, product.Id, typeof(Product).Name);
             }
 
             var validationResult = _productValidator.Validate(product);

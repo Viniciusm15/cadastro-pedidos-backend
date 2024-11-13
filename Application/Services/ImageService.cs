@@ -77,7 +77,7 @@ namespace Application.Services
             };
         }
 
-        public async Task UpdateImage(int id, ImageRequestModel imageRequestModel)
+        public async Task UpdateImage(int id, ImageRequestModel imageRequestModel, int entityId, string entityType)
         {
             _logger.LogInformation("Starting image update with request data: {ImageRequest}", imageRequestModel);
 
@@ -95,6 +95,8 @@ namespace Application.Services
             image.Description = imageRequestModel.Description;
             image.ImageMimeType = imageRequestModel.ImageMimeType;
             image.ImageData = imageRequestModel.ImageData;
+            image.EntityId = entityId;  
+            image.EntityType = entityType; 
 
             var validationResult = _imageValidator.Validate(image);
 
