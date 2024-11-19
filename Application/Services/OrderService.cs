@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
+using Common.Models;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
@@ -22,19 +23,22 @@ namespace Application.Services
             _orderValidator = orderValidator;
         }
 
-        public async Task<IEnumerable<OrderResponseModel>> GetAllOrders()
+        public async Task<PagedResult<OrderResponseModel>> GetAllOrders(int pageNumber, int pageSize)
         {
-            _logger.LogInformation("Retrieving all orders");
-            var orders = await _orderRepository.GetAllOrdersAsync();
+            _logger.LogInformation("Retrieving orders for page {PageNumber} with size {PageSize}", pageNumber, pageSize);
+            var pagedOrders = await _orderRepository.GetAllOrdersAsync(pageNumber, pageSize);
 
-            _logger.LogInformation("Retrieved {OrderCount} orders", orders.Count());
-            return orders.Select(order => new OrderResponseModel
+            var orderModels = pagedOrders.Items.Select(order => new OrderResponseModel
             {
                 OrderId = order.Id,
                 OrderDate = order.OrderDate,
                 TotalValue = order.TotalValue,
                 ClientId = order.ClientId
-            });
+            }).ToList();
+
+            _logger.LogInformation("Retrieved {OrderCount} orders on page {PageNumber}", orderModels.Count(), pageNumber);
+
+            return new PagedResult<OrderResponseModel>(orderModels, pagedOrders.TotalCount);
         }
 
         public async Task<OrderResponseModel> GetOrderById(int id)

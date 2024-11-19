@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
+using Common.Models;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
@@ -18,17 +19,19 @@ namespace Web.Controllers
         }
 
         /// <summary>
-        /// Retorna todos os pedidos.
+        /// Retorna uma lista paginada de pedidos.
         /// </summary>
-        /// <returns>Uma lista de pedidos.</returns>
+        /// <param name="pageNumber">Número da página desejada (padrão é 1).</param>
+        /// <param name="pageSize">Quantidade de itens por página (padrão é 10).</param>
+        /// <returns>Uma lista paginada de pedidos com o total de itens.</returns>
         [HttpGet]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<OrderResponseModel>>> GetOrders()
+        public async Task<ActionResult<PagedResult<OrderResponseModel>>> GetOrders(int pageNumber = 1, int pageSize = 10)
         {
             try
             {
-                var orders = await _orderService.GetAllOrders();
-                return Ok(orders);
+                var pagedOrders = await _orderService.GetAllOrders(pageNumber, pageSize);
+                return Ok(pagedOrders);
             }
             catch (Exception ex)
             {

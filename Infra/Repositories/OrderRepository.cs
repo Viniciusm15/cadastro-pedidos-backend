@@ -1,4 +1,5 @@
-﻿using Domain.Interfaces;
+﻿using Common.Models;
+using Domain.Interfaces;
 using Domain.Models.Entities;
 using Infra.Data;
 using Infra.Extensions;
@@ -15,14 +16,22 @@ namespace Infra.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Order>> GetAllOrdersAsync()
+        public async Task<PagedResult<Order>> GetAllOrdersAsync(int pageNumber, int pageSize)
         {
-            return await _context.Orders
+            var query = _context.Orders
                 .WhereActive()
                 .OrderBy(order => order.OrderDate)
                 .Include(order => order.Client)
-                .Include(order => order.OrderItens)
+                .Include(order => order.OrderItens);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
+
+            return new PagedResult<Order>(items, totalCount);
         }
 
         public async Task<Order?> GetOrderByIdAsync(int id)

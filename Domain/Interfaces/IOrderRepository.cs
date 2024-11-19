@@ -1,10 +1,11 @@
-﻿using Domain.Models.Entities;
+﻿using Common.Models;
+using Domain.Models.Entities;
 
 namespace Domain.Interfaces
 {
     public interface IOrderRepository : IGenericRepository<Order>
     {
-        Task<IEnumerable<Order>> GetAllOrdersAsync();
+        Task<PagedResult<Order>> GetAllOrdersAsync(int pageNumber, int pageSize);
         Task<Order?> GetOrderByIdAsync(int id);
     }
 }
