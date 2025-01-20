@@ -1,4 +1,5 @@
-﻿using Domain.Interfaces;
+﻿using Domain.Enums;
+using Domain.Interfaces;
 
 namespace Domain.Models.Entities
 {
@@ -11,6 +12,7 @@ namespace Domain.Models.Entities
 
         public DateTime OrderDate { get; set; }
         public double TotalValue { get; set; }
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
         public int ClientId { get; set; }
         public Client Client { get; set; }

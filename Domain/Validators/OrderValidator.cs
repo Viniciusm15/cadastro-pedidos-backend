@@ -14,6 +14,9 @@ namespace Domain.Validators
             RuleFor(order => order.TotalValue)
                 .GreaterThan(0).WithMessage("Total value must be greater than zero");
 
+            RuleFor(order => order.Status)
+                .IsInEnum().WithMessage("Status must be a valid value");
+
             RuleFor(order => order.ClientId)
                 .GreaterThan(0).WithMessage("Client ID is required");
         }

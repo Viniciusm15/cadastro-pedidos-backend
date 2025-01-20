@@ -1,4 +1,5 @@
-﻿using Domain.Models.Entities;
+﻿using Domain.Enums;
+using Domain.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -17,6 +18,13 @@ namespace Infra.Mappings
 
             builder.Property(o => o.TotalValue)
                 .IsRequired();
+
+            builder.Property(o => o.Status)
+               .HasConversion(
+                   status => status.ToString(),
+                   status => (OrderStatus)Enum.Parse(typeof(OrderStatus), status)
+               )
+               .IsRequired();
 
             builder.HasOne(o => o.Client)
                 .WithMany(c => c.Orders)

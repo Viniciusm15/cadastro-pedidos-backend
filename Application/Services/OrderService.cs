@@ -1,6 +1,7 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
 using Common.Models;
+using Domain.Enums;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
@@ -33,6 +34,7 @@ namespace Application.Services
                 OrderId = order.Id,
                 OrderDate = order.OrderDate,
                 TotalValue = order.TotalValue,
+                Status = order.Status,
                 ClientId = order.ClientId
             }).ToList();
 
@@ -58,7 +60,8 @@ namespace Application.Services
                 OrderId = order.Id,
                 OrderDate = order.OrderDate,
                 TotalValue = order.TotalValue,
-                ClientId = order.ClientId
+                ClientId = order.ClientId,
+                Status = order.Status
             };
         }
 
@@ -69,6 +72,7 @@ namespace Application.Services
             {
                 OrderDate = orderRequestModel.OrderDate,
                 TotalValue = orderRequestModel.TotalValue,
+                Status = orderRequestModel.Status,
                 ClientId = orderRequestModel.ClientId
             };
 
@@ -88,7 +92,8 @@ namespace Application.Services
                 OrderId = order.Id,
                 OrderDate = order.OrderDate,
                 TotalValue = order.TotalValue,
-                ClientId = order.ClientId
+                ClientId = order.ClientId,
+                Status = order.Status
             };
         }
 
@@ -109,6 +114,7 @@ namespace Application.Services
 
             order.OrderDate = orderRequestModel.OrderDate;
             order.TotalValue = orderRequestModel.TotalValue;
+            order.Status = orderRequestModel.Status;
             order.ClientId = orderRequestModel.ClientId;
 
             var validationResult = _orderValidator.Validate(order);
@@ -133,6 +139,11 @@ namespace Application.Services
                 _logger.LogError("Order not found by ID: {Id}", id);
                 throw new NotFoundException($"Order not found by ID: {id}");
             }
+
+            order.Status = OrderStatus.Canceled;
+
+            await _orderRepository.UpdateAsync(order);
+            _logger.LogInformation("Order status updated to 'Canceled' with ID: {OrderId}", order.Id);
 
             await _orderRepository.DeleteAsync(order);
             _logger.LogInformation("Order deleted with ID: {ProductId}", id);
