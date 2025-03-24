@@ -72,7 +72,6 @@ namespace Application.Services
             };
 
             var validationResult = _categoryValidator.Validate(category);
-
             if (!validationResult.IsValid)
             {
                 _logger.LogError("Category creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
@@ -110,7 +109,6 @@ namespace Application.Services
             category.Description = categoryRequestModel.Description;
 
             var validationResult = _categoryValidator.Validate(category);
-
             if (!validationResult.IsValid)
             {
                 _logger.LogError("Category update failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));

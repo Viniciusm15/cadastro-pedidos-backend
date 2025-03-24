@@ -58,7 +58,6 @@ namespace Application.Services
             };
 
             var validationResult = _imageValidator.Validate(image);
-
             if (!validationResult.IsValid)
             {
                 _logger.LogError("Image creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
@@ -99,7 +98,6 @@ namespace Application.Services
             image.EntityType = entityType; 
 
             var validationResult = _imageValidator.Validate(image);
-
             if (!validationResult.IsValid)
             {
                 _logger.LogError("Image update failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));

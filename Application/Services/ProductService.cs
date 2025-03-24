@@ -92,7 +92,6 @@ namespace Application.Services
                 };
 
                 var validationResult = _productValidator.Validate(product);
-
                 if (!validationResult.IsValid)
                 {
                     _logger.LogError("Product creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
@@ -151,7 +150,6 @@ namespace Application.Services
             }
 
             var validationResult = _productValidator.Validate(product);
-
             if (!validationResult.IsValid)
             {
                 _logger.LogError("Product update failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));

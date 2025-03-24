@@ -90,7 +90,6 @@ namespace Application.Services
             };
 
             var validationResult = _clientValidator.Validate(client);
-
             if (!validationResult.IsValid)
             {
                 _logger.LogError("Client creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
@@ -138,7 +137,6 @@ namespace Application.Services
             client.BirthDate = clientRequestModel.BirthDate;
 
             var validationResult = _clientValidator.Validate(client);
-
             if (!validationResult.IsValid)
             {
                 _logger.LogError("Client update failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
