@@ -1,5 +1,4 @@
 ﻿using Application.Interfaces;
-using Domain.Models.Entities;
 using Domain.Models.ResponseModels;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,16 +16,18 @@ namespace Web.Controllers
         }
 
         /// <summary>
-        /// Retorna todos os itens de pedido.
+        /// Retorna a lista de itens associados a um pedido específico.
         /// </summary>
-        /// <returns>Uma lista de itens de pedido.</returns>
-        [HttpGet]
+        /// <param name="id">Identificador único do pedido cujos itens serão recuperados.</param>
+        /// <returns>Uma lista de itens do pedido correspondente ao ID fornecido.</returns>
+        /// <response code="200">Pedido foi encontrado e retornado com sucesso.</response>
+        [HttpGet("{id}")]
         [ProducesResponseType(200)]
-        public async Task<ActionResult<IEnumerable<OrderItemResponseModel>>> GetOrderItems()
+        public async Task<ActionResult<IEnumerable<OrderItemResponseModel>>> GetOrderItemsByOrderId(int id)
         {
             try
             {
-                var orderItems = await _orderItemService.GetAllOrderItems();
+                var orderItems = await _orderItemService.GetOrderItemsByOrderId(id);
                 return Ok(orderItems);
             }
             catch (Exception ex)

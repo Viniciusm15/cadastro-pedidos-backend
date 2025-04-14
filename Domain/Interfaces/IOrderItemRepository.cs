@@ -4,6 +4,6 @@ namespace Domain.Interfaces
 {
     public interface IOrderItemRepository : IGenericRepository<OrderItem>
     {
-        Task<IEnumerable<OrderItem>> GetAllOrderItemsAsync();
+        Task<IEnumerable<OrderItem>> GetByOrderIdAsync(int orderId);
     }
 }

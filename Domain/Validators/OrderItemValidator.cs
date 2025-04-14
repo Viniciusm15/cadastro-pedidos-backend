@@ -16,14 +16,8 @@ namespace Domain.Validators
             RuleFor(orderItem => orderItem.OrderId)
                 .GreaterThan(0).WithMessage("Order ID is required");
 
-            RuleFor(orderItem => orderItem.Order)
-                .NotNull().WithMessage("Order is required");
-
             RuleFor(orderItem => orderItem.ProductId)
                 .GreaterThan(0).WithMessage("Product ID is required");
-
-            RuleFor(orderItem => orderItem.Product)
-                .NotNull().WithMessage("Product is required");
         }
     }
 }

@@ -16,12 +16,16 @@ namespace Application.Services
         private readonly ILogger<OrderService> _logger;
         private readonly IOrderRepository _orderRepository;
         private readonly IValidator<Order> _orderValidator;
+        private readonly IOrderItemService _orderItemService;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public OrderService(ILogger<OrderService> logger, IOrderRepository orderRepository, IValidator<Order> orderValidator)
+        public OrderService(ILogger<OrderService> logger, IOrderRepository orderRepository, IValidator<Order> orderValidator, IOrderItemService orderItemService, IUnitOfWork unitOfWork)
         {
             _logger = logger;
             _orderRepository = orderRepository;
             _orderValidator = orderValidator;
+            _orderItemService = orderItemService;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<PagedResult<OrderResponseModel>> GetAllOrders(int pageNumber, int pageSize)
@@ -68,65 +72,98 @@ namespace Application.Services
         public async Task<OrderResponseModel> CreateOrder(OrderRequestModel orderRequestModel)
         {
             _logger.LogInformation("Starting order creation with request data: {OrderRequest}", orderRequestModel);
-            var order = new Order
-            {
-                OrderDate = orderRequestModel.OrderDate,
-                TotalValue = orderRequestModel.TotalValue,
-                Status = orderRequestModel.Status,
-                ClientId = orderRequestModel.ClientId
-            };
 
-            var validationResult = _orderValidator.Validate(order);
-
-            if (!validationResult.IsValid)
+            await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                _logger.LogError("Order creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-                throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+                var order = new Order
+                {
+                    OrderDate = orderRequestModel.OrderDate,
+                    TotalValue = orderRequestModel.TotalValue,
+                    Status = orderRequestModel.Status,
+                    ClientId = orderRequestModel.ClientId
+                };
+
+                var validationResult = _orderValidator.Validate(order);
+                if (!validationResult.IsValid)
+                {
+                    _logger.LogError("Order creation failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                    throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+                }
+
+                await _orderRepository.CreateAsync(order);
+
+                foreach (var itemRequest in orderRequestModel.OrderItems)
+                {
+                    itemRequest.OrderId = order.Id;
+                    await _orderItemService.CreateOrderItem(itemRequest);
+                }
+
+                await _unitOfWork.CommitAsync();
+
+                _logger.LogInformation("Order created with ID: {OrderId}", order.Id);
+                return new OrderResponseModel()
+                {
+                    OrderId = order.Id,
+                    OrderDate = order.OrderDate,
+                    TotalValue = order.TotalValue,
+                    ClientId = order.ClientId,
+                    Status = order.Status
+                };
             }
-
-            await _orderRepository.CreateAsync(order);
-
-            _logger.LogInformation("Order created with ID: {OrderId}", order.Id);
-            return new OrderResponseModel()
+            catch (Exception ex)
             {
-                OrderId = order.Id,
-                OrderDate = order.OrderDate,
-                TotalValue = order.TotalValue,
-                ClientId = order.ClientId,
-                Status = order.Status
-            };
+                _logger.LogError("Order creation failed. Rolling back transaction. Error: {Error}", ex.Message);
+                await _unitOfWork.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task UpdateOrder(int id, OrderRequestModel orderRequestModel)
         {
             _logger.LogInformation("Starting order update with request data: {OrderRequest}", orderRequestModel);
 
-            _logger.LogInformation("Starting order search with ID {Id}", id);
-            var order = await _orderRepository.GetOrderByIdAsync(id);
-
-            if (order == null)
+            await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                _logger.LogError("Order not found by ID: {Id}", id);
-                throw new NotFoundException($"Order not found by ID: {id}");
+                _logger.LogInformation("Starting order search with ID {Id}", id);
+                var order = await _orderRepository.GetOrderByIdAsync(id);
+
+                if (order == null)
+                {
+                    _logger.LogError("Order not found by ID: {Id}", id);
+                    throw new NotFoundException($"Order not found by ID: {id}");
+                }
+
+                _logger.LogInformation("Order found by ID: {OrderId}", order.Id);
+
+                order.OrderDate = orderRequestModel.OrderDate;
+                order.TotalValue = orderRequestModel.TotalValue;
+                order.Status = orderRequestModel.Status;
+                order.ClientId = orderRequestModel.ClientId;
+
+                await _orderItemService.SyncOrderItems(order.Id, orderRequestModel.OrderItems);
+                order = await _orderRepository.GetOrderByIdAsync(order.Id);
+                order.TotalValue = order.OrderItens.Sum(i => i.Subtotal);
+
+                var validationResult = _orderValidator.Validate(order);
+                if (!validationResult.IsValid)
+                {
+                    _logger.LogError("Order update failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                    throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+                }
+
+                await _unitOfWork.CommitAsync();
+
+                await _orderRepository.UpdateAsync(order);
+                _logger.LogInformation("Order updated with ID: {OrderId}", id);
             }
-
-            _logger.LogInformation("Order found by ID: {OrderId}", order.Id);
-
-            order.OrderDate = orderRequestModel.OrderDate;
-            order.TotalValue = orderRequestModel.TotalValue;
-            order.Status = orderRequestModel.Status;
-            order.ClientId = orderRequestModel.ClientId;
-
-            var validationResult = _orderValidator.Validate(order);
-
-            if (!validationResult.IsValid)
+            catch (Exception ex)
             {
-                _logger.LogError("Order update failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-                throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+                _logger.LogError("Order update failed. Rolling back transaction. Error: {Error}", ex.Message);
+                await _unitOfWork.RollbackAsync();
+                throw;
             }
-
-            await _orderRepository.UpdateAsync(order);
-            _logger.LogInformation("Order updated with ID: {OrderId}", id);
         }
 
         public async Task DeleteOrder(int id)
@@ -138,6 +175,15 @@ namespace Application.Services
             {
                 _logger.LogError("Order not found by ID: {Id}", id);
                 throw new NotFoundException($"Order not found by ID: {id}");
+            }
+
+            if (order.OrderItens.Any())
+            {
+                foreach (var orderItem in order.OrderItens)
+                {
+                    await _orderItemService.DeleteOrderItem(orderItem.Id);
+                    _logger.LogInformation("Order item with ID: {OrderItemId} deleted", orderItem.Id);
+                }
             }
 
             order.Status = OrderStatus.Canceled;
