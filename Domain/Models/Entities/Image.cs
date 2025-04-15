@@ -8,7 +8,7 @@ namespace Domain.Models.Entities
         public required string ImageMimeType { get; set; }
         public string? Description { get; set; }
 
-        public int EntityId { get; set; } 
-        public string EntityType { get; set; } 
+        public int EntityId { get; set; }
+        public string EntityType { get; set; }
     }
 }

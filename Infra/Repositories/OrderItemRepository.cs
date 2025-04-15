@@ -19,7 +19,7 @@ namespace Infra.Repositories
         {
             return await _context.OrderItens
                 .Where(orderItem => orderItem.OrderId == orderId)
-                .WhereActive() 
+                .WhereActive()
                 .Include(orderItem => orderItem.Order)
                 .Include(orderItem => orderItem.Product)
                 .ToListAsync();

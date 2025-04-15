@@ -19,9 +19,9 @@ namespace Infra.Repositories
         public async Task<List<Order>> GetAllOrdersAsync()
         {
             var query = _context.Orders
-                .WhereActive() 
+                .WhereActive()
                 .OrderBy(order => order.OrderDate)
-                .Include(order => order.Client)  
+                .Include(order => order.Client)
                 .Include(order => order.OrderItens);
 
             return await query.ToListAsync();

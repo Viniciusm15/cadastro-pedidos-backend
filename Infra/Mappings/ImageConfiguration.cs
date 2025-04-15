@@ -14,24 +14,24 @@ namespace Infra.Mappings
 
             builder.Property(i => i.ImageData)
                 .IsRequired()
-                .HasColumnType("varbinary(max)"); 
+                .HasColumnType("varbinary(max)");
 
             builder.Property(i => i.ImageMimeType)
                 .IsRequired()
-                .HasMaxLength(50); 
+                .HasMaxLength(50);
 
             builder.Property(i => i.Description)
-                .HasMaxLength(255); 
+                .HasMaxLength(255);
 
             builder.Property(i => i.EntityId)
                 .IsRequired();
 
             builder.Property(i => i.EntityType)
                 .IsRequired()
-                .HasMaxLength(50); 
+                .HasMaxLength(50);
 
             builder.HasIndex(i => new { i.EntityId, i.EntityType })
-                .IsUnique(); 
+                .IsUnique();
         }
     }
 }

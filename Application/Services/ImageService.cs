@@ -1,6 +1,5 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
-using Common.Models;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
@@ -53,7 +52,7 @@ namespace Application.Services
                 Description = imageRequestModel.Description,
                 ImageMimeType = imageRequestModel.ImageMimeType,
                 ImageData = imageRequestModel.ImageData,
-                EntityType = entityType, 
+                EntityType = entityType,
                 EntityId = entityId
             };
 
@@ -94,8 +93,8 @@ namespace Application.Services
             image.Description = imageRequestModel.Description;
             image.ImageMimeType = imageRequestModel.ImageMimeType;
             image.ImageData = imageRequestModel.ImageData;
-            image.EntityId = entityId;  
-            image.EntityType = entityType; 
+            image.EntityId = entityId;
+            image.EntityType = entityType;
 
             var validationResult = _imageValidator.Validate(image);
             if (!validationResult.IsValid)
