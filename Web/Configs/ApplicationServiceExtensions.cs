@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Application.Services;
+using Common.Helpers;
 using Domain.Validators;
 using FluentValidation;
 
@@ -15,6 +16,7 @@ namespace Web.Configs
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IImageService, ImageService>();
+            services.AddScoped<ICsvService, CsvService>();
 
             services.AddValidatorsFromAssemblyContaining<CategoryValidator>();
             services.AddValidatorsFromAssemblyContaining<ClientValidator>();

@@ -147,5 +147,27 @@ namespace Web.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        /// <summary>
+        /// Gera um relatório de pedidos em formato CSV.
+        /// </summary>
+        /// <returns>Arquivo CSV contendo o relatório de vendas.</returns>
+        /// <response code="200">Relatório gerado e retornado com sucesso.</response>
+        /// <response code="500">Erro interno ao gerar o relatório.</response>
+        [HttpGet("generate-csv-report")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> GenerateOrdersCsvReport()
+        {
+            try
+            {
+                var reportFile = await _orderService.GenerateOrdersReportCsvAsync();
+                return File(reportFile, "text/csv", "Order_Report.csv");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred while generating the CSV report: {ex.Message}");
+            }
+        }
     }
 }

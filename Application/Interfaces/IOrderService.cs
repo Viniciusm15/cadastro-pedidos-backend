@@ -11,5 +11,6 @@ namespace Application.Interfaces
         Task<OrderResponseModel> CreateOrder(OrderRequestModel orderRequestModel);
         Task UpdateOrder(int id, OrderRequestModel orderRequestModel);
         Task DeleteOrder(int id);
+        Task<byte[]> GenerateOrdersReportCsvAsync();
     }
 }

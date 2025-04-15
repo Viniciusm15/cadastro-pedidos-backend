@@ -1,9 +1,11 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
+using Common.Helpers;
 using Common.Models;
 using Domain.Enums;
 using Domain.Interfaces;
 using Domain.Models.Entities;
+using Domain.Models.Reports;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using FluentValidation;
@@ -17,14 +19,16 @@ namespace Application.Services
         private readonly IOrderRepository _orderRepository;
         private readonly IValidator<Order> _orderValidator;
         private readonly IOrderItemService _orderItemService;
+        private readonly ICsvService _csvService;
         private readonly IUnitOfWork _unitOfWork;
 
-        public OrderService(ILogger<OrderService> logger, IOrderRepository orderRepository, IValidator<Order> orderValidator, IOrderItemService orderItemService, IUnitOfWork unitOfWork)
+        public OrderService(ILogger<OrderService> logger, IOrderRepository orderRepository, IValidator<Order> orderValidator, IOrderItemService orderItemService, ICsvService csvService, IUnitOfWork unitOfWork)
         {
             _logger = logger;
             _orderRepository = orderRepository;
             _orderValidator = orderValidator;
             _orderItemService = orderItemService;
+            _csvService = csvService;
             _unitOfWork = unitOfWork;
         }
 
@@ -193,6 +197,41 @@ namespace Application.Services
 
             await _orderRepository.DeleteAsync(order);
             _logger.LogInformation("Order deleted with ID: {ProductId}", id);
+        }
+
+        public async Task<byte[]> GenerateOrdersReportCsvAsync()
+        {
+            _logger.LogInformation("Starting orders CSV report generation");
+
+            var orders = await _orderRepository.GetAllOrdersAsync();
+            if (orders == null || !orders.Any())
+            {
+                _logger.LogWarning("No orders found to generate the report");
+                return Array.Empty<byte>();
+            }
+
+            _logger.LogInformation("{OrderCount} orders fetched for the report", orders.Count());
+
+            try
+            {
+                var reportData = orders.Select(order => new OrderReportModel
+                {
+                    OrderNumber = order.Id,
+                    OrderDate = order.OrderDate.ToString("MM/dd/yyyy"),
+                    ClientName = order.Client?.Name ?? "No Client",
+                    Status = order.Status.ToString(),
+                    TotalItems = order.OrderItens?.Sum(i => i.Quantity) ?? 0,
+                    TotalValue = order.TotalValue
+                }).ToList();
+
+                _logger.LogInformation("CSV report data generated successfully. {ReportDataCount} items in the report", reportData.Count);
+                return _csvService.WriteCsvToByteArray(reportData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("An error occurred while generating the CSV report: {Message}", ex.Message);
+                return Array.Empty<byte>();
+            }
         }
     }
 }

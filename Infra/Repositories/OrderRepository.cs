@@ -16,6 +16,17 @@ namespace Infra.Repositories
             _context = context;
         }
 
+        public async Task<List<Order>> GetAllOrdersAsync()
+        {
+            var query = _context.Orders
+                .WhereActive() 
+                .OrderBy(order => order.OrderDate)
+                .Include(order => order.Client)  
+                .Include(order => order.OrderItens);
+
+            return await query.ToListAsync();
+        }
+
         public async Task<PagedResult<Order>> GetAllOrdersAsync(int pageNumber, int pageSize)
         {
             var query = _context.Orders
