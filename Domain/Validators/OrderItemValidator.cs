@@ -8,7 +8,7 @@ namespace Domain.Validators
         public OrderItemValidator()
         {
             RuleFor(orderItem => orderItem.Quantity)
-                .GreaterThan(0).WithMessage("Quantity must be greater than zero");
+                .GreaterThan(0).WithMessage("{PropertyName} must be greater than zero");
 
             RuleFor(orderItem => orderItem.UnitaryPrice)
                 .GreaterThan(0).WithMessage("Unitary price must be greater than zero");

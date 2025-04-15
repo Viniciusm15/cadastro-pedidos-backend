@@ -8,11 +8,11 @@ namespace Domain.Validators
         public ProductValidator()
         {
             RuleFor(product => product.Name)
-                .NotEmpty().WithMessage("Name is required")
+                .NotEmpty().WithMessage("{PropertyName} is required")
                 .MaximumLength(100).WithMessage("The field {PropertyName} must be a maximum of {MaxLength} characters.");
 
             RuleFor(product => product.Description)
-                .NotEmpty().WithMessage("Description is required");
+                .NotEmpty().WithMessage("{PropertyName} is required");
 
             RuleFor(product => product.Price)
                 .GreaterThanOrEqualTo(0).WithMessage("Price must be greater than or equal to zero");

@@ -21,7 +21,7 @@ namespace Domain.Validators
 
             RuleFor(image => image.Description)
                 .MaximumLength(255)
-                .WithMessage("Description cannot be longer than 255 characters.");
+                .WithMessage("{PropertyName} cannot be longer than {MaxLength} characters.");
         }
     }
 }
