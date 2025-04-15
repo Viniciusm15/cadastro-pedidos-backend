@@ -21,11 +21,14 @@ namespace Web.Controllers
         /// <summary>
         /// Retorna uma lista paginada de pedidos.
         /// </summary>
-        /// <param name="pageNumber">Número da página desejada (padrão é 1).</param>
-        /// <param name="pageSize">Quantidade de itens por página (padrão é 10).</param>
-        /// <returns>Uma lista paginada de pedidos com o total de itens.</returns>
+        /// <param name="pageNumber">Número da página (padrão: 1).</param>
+        /// <param name="pageSize">Quantidade de itens por página (padrão: 10).</param>
+        /// <returns>Lista paginada contendo os pedidos e o total de registros.</returns>
+        /// <response code="200">Retorna a lista de pedidos paginada.</response>
+        /// <response code="500">Erro interno ao buscar os pedidos.</response>
         [HttpGet]
-        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(PagedResult<OrderResponseModel>), 200)]
+        [ProducesResponseType(500)]
         public async Task<ActionResult<PagedResult<OrderResponseModel>>> GetOrders(int pageNumber = 1, int pageSize = 10)
         {
             try
@@ -46,9 +49,11 @@ namespace Web.Controllers
         /// <returns>Pedido correspondente ao ID fornecido.</returns>
         /// <response code="200">Pedido foi encontrado e retornado com sucesso.</response>
         /// <response code="404">Pedido com o ID fornecido não foi encontrado.</response>
+        /// <response code="500">Erro interno no servidor.</response>
         [HttpGet("{id}")]
-        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(OrderResponseModel), 200)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
         public async Task<ActionResult<OrderResponseModel>> GetOrderById(int id)
         {
             try
@@ -67,19 +72,23 @@ namespace Web.Controllers
         }
 
         /// <summary>
-        /// Adiciona um novo pedido.
+        /// Cria um novo pedido com os dados informados.
         /// </summary>
-        /// <param name="orderRequestModel">Novo pedido a ser adicionado.</param>
-        /// <returns>Novo pedido adicionado.</returns>
-        /// <response code="201">Pedido adicionado com sucesso.</response>
+        /// <param name="orderRequestModel">Objeto com os dados do novo pedido.</param>
+        /// <returns>O pedido criado com seu ID.</returns>
+        /// <response code="201">Pedido criado com sucesso.</response>
+        /// <response code="400">Dados inválidos fornecidos.</response>
+        /// <response code="500">Erro interno ao criar o pedido.</response>
         [HttpPost]
-        [ProducesResponseType(201)]
-        public async Task<ActionResult<OrderResponseModel>> PostOrder(OrderRequestModel orderRequestModel)
+        [ProducesResponseType(typeof(OrderResponseModel), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<OrderResponseModel>> PostOrder([FromBody] OrderRequestModel orderRequestModel)
         {
             try
             {
                 var order = await _orderService.CreateOrder(orderRequestModel);
-                return CreatedAtAction("GetOrderById", new { id = order.OrderId }, order);
+                return CreatedAtAction(nameof(GetOrderById), new { id = order.OrderId }, order);
             }
             catch (ValidationException ex)
             {
@@ -100,11 +109,13 @@ namespace Web.Controllers
         /// <response code="204">Pedido atualizado com sucesso.</response>
         /// <response code="400">Requisição inválida.</response>
         /// <response code="404">Pedido não encontrado.</response>
+        /// <response code="500">Erro interno ao criar o pedido.</response>
         [HttpPut("{id}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> PutOrder(int id, OrderRequestModel orderRequestModel)
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> PutOrder(int id, [FromBody] OrderRequestModel orderRequestModel)
         {
             try
             {
@@ -128,9 +139,11 @@ namespace Web.Controllers
         /// <returns>Nenhum conteúdo.</returns>
         /// <response code="204">Pedido foi deletado com sucesso.</response>
         /// <response code="404">Pedido com o ID fornecido não foi encontrado.</response>
+        /// <response code="500">Erro interno ao criar o pedido.</response>
         [HttpDelete("{id}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
         public async Task<IActionResult> DeleteOrderById(int id)
         {
             try
@@ -155,6 +168,7 @@ namespace Web.Controllers
         /// <response code="200">Relatório gerado e retornado com sucesso.</response>
         /// <response code="500">Erro interno ao gerar o relatório.</response>
         [HttpGet("generate-csv-report")]
+        [Produces("text/csv")]
         [ProducesResponseType(200)]
         [ProducesResponseType(500)]
         public async Task<IActionResult> GenerateOrdersCsvReport()

@@ -21,8 +21,10 @@ namespace Web.Controllers
         /// <param name="id">Identificador único do pedido cujos itens serão recuperados.</param>
         /// <returns>Uma lista de itens do pedido correspondente ao ID fornecido.</returns>
         /// <response code="200">Pedido foi encontrado e retornado com sucesso.</response>
+        /// <response code="500">Erro interno no servidor.</response>
         [HttpGet("{id}")]
-        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(IEnumerable<OrderItemResponseModel>), 200)]
+        [ProducesResponseType(500)]
         public async Task<ActionResult<IEnumerable<OrderItemResponseModel>>> GetOrderItemsByOrderId(int id)
         {
             try

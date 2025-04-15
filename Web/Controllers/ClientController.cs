@@ -19,11 +19,16 @@ namespace Web.Controllers
         }
 
         /// <summary>
-        /// Retorna todos os clientes.
+        /// Retorna todos os clientes de forma paginada.
         /// </summary>
-        /// <returns>Uma lista de clientes.</returns>
+        /// <param name="pageNumber">Número da página desejada (padrão é 1).</param>
+        /// <param name="pageSize">Quantidade de itens por página (padrão é 10).</param>
+        /// <returns>Uma lista paginada de clientes com o total de itens.</returns>
+        /// <response code="200">Lista paginada de clientes retornada com sucesso.</response>
+        /// <response code="500">Erro interno no servidor.</response>
         [HttpGet]
-        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(PagedResult<ClientResponseModel>), 200)]
+        [ProducesResponseType(500)]
         public async Task<ActionResult<PagedResult<ClientResponseModel>>> GetClients(int pageNumber = 1, int pageSize = 10)
         {
             try
@@ -44,9 +49,11 @@ namespace Web.Controllers
         /// <returns>Cliente correspondente ao ID fornecido.</returns>
         /// <response code="200">Cliente foi encontrado e retornado com sucesso.</response>
         /// <response code="404">Cliente com o ID fornecido não foi encontrado.</response>
+        /// <response code="500">Erro interno no servidor.</response>
         [HttpGet("{id}")]
-        [ProducesResponseType(200)]
+        [ProducesResponseType(typeof(ClientResponseModel), 200)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
         public async Task<ActionResult<ClientResponseModel>> GetClientById(int id)
         {
             try
@@ -68,16 +75,20 @@ namespace Web.Controllers
         /// Adiciona um novo cliente.
         /// </summary>
         /// <param name="clientRequestModel">Novo cliente a ser adicionado.</param>
-        /// <returns>Novo cliente adicionado.</returns>
+        /// <returns>O cliente recém-criado.</returns>
         /// <response code="201">Cliente adicionado com sucesso.</response>
+        /// <response code="400">Requisição inválida.</response>
+        /// <response code="500">Erro interno no servidor.</response>
         [HttpPost]
-        [ProducesResponseType(201)]
-        public async Task<ActionResult<ClientResponseModel>> PostClient(ClientRequestModel clientRequestModel)
+        [ProducesResponseType(typeof(ClientResponseModel), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<ClientResponseModel>> PostClient([FromBody] ClientRequestModel clientRequestModel)
         {
             try
             {
                 var client = await _clientService.CreateClient(clientRequestModel);
-                return CreatedAtAction("GetClientById", new { id = client.ClientId }, client);
+                return CreatedAtAction(nameof(GetClientById), new { id = client.ClientId }, client);
             }
             catch (ValidationException ex)
             {
@@ -98,11 +109,13 @@ namespace Web.Controllers
         /// <response code="204">Cliente atualizado com sucesso.</response>
         /// <response code="400">Requisição inválida.</response>
         /// <response code="404">Cliente não encontrado.</response>
+        /// <response code="500">Erro interno no servidor.</response>
         [HttpPut("{id}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> PutClient(int id, ClientRequestModel clientRequestModel)
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> PutClient(int id, [FromBody] ClientRequestModel clientRequestModel)
         {
             try
             {
@@ -112,6 +125,10 @@ namespace Web.Controllers
             catch (NotFoundException ex)
             {
                 return NotFound(ex.Message);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.ValidationErrors);
             }
             catch (Exception ex)
             {
@@ -123,12 +140,14 @@ namespace Web.Controllers
         /// Deleta um cliente com o ID especificado.
         /// </summary>
         /// <param name="id">ID do cliente a ser deletado.</param>
-        /// <returns>Nenhum conteúdo.</returns>
+        /// <returns>Nenhum conteúdo se a exclusão for bem-sucedida.</returns>
         /// <response code="204">Cliente foi deletado com sucesso.</response>
         /// <response code="404">Cliente com o ID fornecido não foi encontrado.</response>
+        /// <response code="500">Erro interno no servidor.</response>
         [HttpDelete("{id}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
         public async Task<IActionResult> DeleteClientById(int id)
         {
             try
