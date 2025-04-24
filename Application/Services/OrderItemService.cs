@@ -109,14 +109,28 @@ namespace Application.Services
         {
             _logger.LogInformation("Starting sync of order items for Order ID: {OrderId}", orderId);
 
-            var existingItems = await _orderItemRepository.GetByOrderIdAsync(orderId);
+            var existingItems = (await _orderItemRepository.GetByOrderIdAsync(orderId)).ToList();
+            var requestItemIds = itemRequests.Select(x => x.Id).ToList();
+            var itemsToRemove = existingItems.Where(x => !requestItemIds.Contains(x.Id) && x.Id != 0).ToList();
+
+            foreach (var itemToRemove in itemsToRemove)
+            {
+                _logger.LogInformation("Removing order item with ID: {ItemId}", itemToRemove.Id);
+                await _orderItemRepository.DeleteAsync(itemToRemove);
+            }
+
             foreach (var item in itemRequests)
             {
                 var existingItem = existingItems.FirstOrDefault(x => x.Id == item.Id);
                 if (existingItem != null)
+                {
                     await UpdateOrderItem(existingItem.Id, item);
+                }
                 else
+                {
+                    item.OrderId = orderId;
                     await CreateOrderItem(item);
+                }
             }
 
             _logger.LogInformation("Order items synced for Order ID: {OrderId}", orderId);
