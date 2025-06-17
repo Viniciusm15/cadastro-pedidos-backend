@@ -1,6 +1,5 @@
 using Infra.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using Web.Configs;
@@ -56,3 +55,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Necessário para os testes de integração
+public partial class Program { }
