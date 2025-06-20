@@ -29,6 +29,12 @@ namespace Application.Services
             _logger.LogInformation("Retrieving all order itens");
             var orderItems = await _orderItemRepository.GetByOrderIdAsync(orderId);
 
+            if (orderItems == null || !orderItems.Any())
+            {
+                _logger.LogError("Order item not found by ID: {Id}", orderId);
+                throw new NotFoundException($"Order item not found by ID: {orderId}");
+            }
+
             _logger.LogInformation("Retrieved {OrderItens} order itens", orderItems.Count());
             return orderItems.Select(orderItem => new OrderItemResponseModel
             {

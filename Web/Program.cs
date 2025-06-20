@@ -1,10 +1,16 @@
 using Infra.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using System.Globalization;
 using System.Reflection;
 using Web.Configs;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Force global culture to "en-US" (dotted decimal)
+var defaultCulture = new CultureInfo("en-US");
+CultureInfo.DefaultThreadCurrentCulture = defaultCulture;
+CultureInfo.DefaultThreadCurrentUICulture = defaultCulture;
 
 // Add services to the container.
 builder.Services.AddControllers();

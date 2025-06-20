@@ -8,7 +8,7 @@ using Tests.IntegrationTests.Shared;
 
 namespace Tests.IntegrationTests.Controllers
 {
-    public class ClientsControllerTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
+    public class ClientControllerTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
     {
         [Fact]
         public async Task GetAll_ReturnsPagedClients()

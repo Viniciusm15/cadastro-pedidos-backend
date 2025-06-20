@@ -8,7 +8,7 @@ using Tests.IntegrationTests.Shared;
 
 namespace Tests.IntegrationTests.Controllers
 {
-    public class CategoriesControllerTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
+    public class CategoryControllerTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
     {
         [Fact]
         public async Task GetAll_ReturnsPagedCategories()

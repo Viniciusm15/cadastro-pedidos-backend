@@ -116,7 +116,8 @@ namespace Web.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> PutProduct(int id, [FromBody] ProductRequestModel productRequestModel)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> PutProduct(int id, [FromForm] ProductRequestModel productRequestModel)
         {
             try
             {
