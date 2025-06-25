@@ -1,54 +1,42 @@
 ﻿using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using System.Globalization;
-using System.Net.Http.Json;
+using Tests.IntegrationTests.Configuration;
 
 namespace Tests.IntegrationTests.Shared
 {
-    public class ProductTestHelper(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
+    public class ProductTestHelper(HttpClient client)
     {
-        public async Task<CategoryResponseModel> CreateTestCategory(string name = "Test Category", string description = "For Product Tests")
-        {
-            var category = new CategoryRequestModel
-            {
-                Name = name,
-                Description = description
-            };
+        private readonly HttpClient _client = client;
+        private readonly CategoryTestHelper _categoryHelper = new(client);
 
-            var response = await _client.PostAsJsonAsync("/api/category", category);
-            return await DeserializeResponse<CategoryResponseModel>(response);
-        }
-
-        public async Task<ProductResponseModel> CreateTestProduct(
+        public ProductRequestModel CreateProductRequestModel(
             string name = "Test Product",
             string description = "Test Description",
             double price = 10.99,
             int stockQuantity = 100,
-            string imageDescription = "Test Image Description",
-            int? categoryId = null)
-        {
-            var productRequest = await CreateProductRequestModel(name, description, price, stockQuantity, categoryId, imageDescription);
-            var content = CreateMultipartFormDataContent(productRequest);
-
-            var response = await _client.PostAsync("/api/product", content);
-            return await DeserializeResponse<ProductResponseModel>(response);
-        }
-
-        public async Task<ProductRequestModel> CreateProductRequestModel(
-            string name = "Test Product",
-            string description = "Test Description",
-            double price = 10.99,
-            int stockQuantity = 100,
-            int? categoryId = null,
+            int categoryId = 0,
             string imageDescription = "Test Image Description")
         {
-            var finalCategoryId = categoryId;
-
-            if (!finalCategoryId.HasValue)
+            return new ProductRequestModel
             {
-                var category = await CreateTestCategory();
-                finalCategoryId = category.CategoryId;
-            }
+                Name = name,
+                Description = description,
+                Price = price,
+                StockQuantity = stockQuantity,
+                CategoryId = categoryId,
+                Image = CreateTestImage(imageDescription)
+            };
+        }
+
+        public async Task<ProductRequestModel> CreateProductRequestModelWithCategoryAsync(
+            string name = "Test Product",
+            string description = "Test Description",
+            double price = 10.99,
+            int stockQuantity = 100,
+            string imageDescription = "Test Image Description")
+        {
+            var category = await _categoryHelper.CreateTestCategory();
 
             return new ProductRequestModel
             {
@@ -56,7 +44,7 @@ namespace Tests.IntegrationTests.Shared
                 Description = description,
                 Price = price,
                 StockQuantity = stockQuantity,
-                CategoryId = finalCategoryId.Value,
+                CategoryId = category.CategoryId,
                 Image = CreateTestImage(imageDescription)
             };
         }
@@ -97,6 +85,20 @@ namespace Tests.IntegrationTests.Shared
             content.Add(new StringContent(base64String), "Image.ImageData");
 
             return content;
+        }
+
+        public async Task<ProductResponseModel> CreateTestProduct(
+            string name = "Test Product",
+            string description = "Test Description",
+            double price = 10.99,
+            int stockQuantity = 100,
+            string imageDescription = "Test Image Description")
+        {
+            var productRequest = await CreateProductRequestModelWithCategoryAsync(name, description, price, stockQuantity, imageDescription);
+            var content = CreateMultipartFormDataContent(productRequest);
+
+            var response = await _client.PostAsync("/api/product", content);
+            return await IntegrationTestBase.DeserializeResponse<ProductResponseModel>(response);
         }
     }
 }

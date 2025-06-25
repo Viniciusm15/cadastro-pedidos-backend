@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Tests.IntegrationTests.Shared
+namespace Tests.IntegrationTests.Configuration
 {
     public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {

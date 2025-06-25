@@ -1,7 +1,10 @@
 ﻿using Common.Models;
+using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using FluentAssertions;
 using System.Net;
+using System.Net.Http.Json;
+using Tests.IntegrationTests.Configuration;
 using Tests.IntegrationTests.Shared;
 
 namespace Tests.IntegrationTests.Controllers
@@ -12,89 +15,159 @@ namespace Tests.IntegrationTests.Controllers
 
         public ProductControllerTests(CustomWebApplicationFactory factory) : base(factory)
         {
-            _productHelper = new ProductTestHelper(factory);
+            _productHelper = new ProductTestHelper(_client);
         }
 
         [Fact]
-        public async Task GetProducts_ReturnsPagedProducts()
+        public async Task GetAll_ReturnsPagedProducts()
         {
-            var response = await _client.GetAsync("/api/product?pageNumber=1&pageSize=10");
+            // Arrange
+            await _productHelper.CreateTestProduct();
 
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var result = await DeserializeResponse<PagedResult<ProductResponseModel>>(response);
+            // Act
+            var getResponse = await _client.GetAsync("/api/product?pageNumber=1&pageSize=10");
+
+            // Assert
+            getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var result = await DeserializeResponse<PagedResult<ProductResponseModel>>(getResponse);
             result.Should().NotBeNull();
             result.Items.Should().NotBeNull();
         }
 
         [Fact]
-        public async Task GetProductById_ReturnsProduct()
+        public async Task Post_CreatesNewProduct()
         {
-            var createdProduct = await _productHelper.CreateTestProduct();
+            // Arrange
+            var productRequestModel = _productHelper.CreateProductRequestModel(categoryId: 1);
+            var postContent = _productHelper.CreateMultipartFormDataContent(productRequestModel);
 
-            var response = await _client.GetAsync($"/api/product/{createdProduct.ProductId}");
+            // Act
+            var postResponse = await _client.PostAsync("/api/product", postContent);
 
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var product = await DeserializeResponse<ProductResponseModel>(response);
-            product.ProductId.Should().Be(createdProduct.ProductId);
+            // Assert
+            postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            postResponse.Headers.Location.Should().NotBeNull();
+
+            var productResponseModel = await DeserializeResponse<ProductResponseModel>(postResponse);
+            productResponseModel.Name.Should().Be(productRequestModel.Name);
+            productResponseModel.Description.Should().Be(productRequestModel.Description);
+            productResponseModel.Price.Should().Be(productRequestModel.Price);
+            productResponseModel.StockQuantity.Should().Be(productRequestModel.StockQuantity);
+            productResponseModel.CategoryId.Should().Be(productRequestModel.CategoryId);
         }
 
         [Fact]
-        public async Task PostProduct_CreatesNewProduct()
+        public async Task Post_WithInvalidData_ReturnsBadRequest()
         {
-            var productRequest = await _productHelper.CreateProductRequestModel();
+            // Arrange
+            var productRequestModel = _productHelper.CreateProductRequestModel(categoryId: 1, name: "");
+            var postContent = _productHelper.CreateMultipartFormDataContent(productRequestModel);
 
-            var content = _productHelper.CreateMultipartFormDataContent(productRequest);
-            var response = await _client.PostAsync("/api/product", content);
+            // Act
+            var postResponse = await _client.PostAsync("/api/product", postContent);
 
-            response.StatusCode.Should().Be(HttpStatusCode.Created);
-            response.Headers.Location.Should().NotBeNull();
-
-            var createdProduct = await DeserializeResponse<ProductResponseModel>(response);
-            createdProduct.Name.Should().Be(productRequest.Name);
-            createdProduct.Description.Should().Be(productRequest.Description);
-            createdProduct.Price.Should().Be(productRequest.Price);
-            createdProduct.StockQuantity.Should().Be(productRequest.StockQuantity);
-            createdProduct.CategoryId.Should().Be(productRequest.CategoryId);
+            // Assert
+            postResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         }
 
         [Fact]
-        public async Task PutProduct_UpdatesExistingProduct()
+        public async Task GetById_ReturnsProduct()
         {
+            // Arrange
             var createdProduct = await _productHelper.CreateTestProduct();
 
-            var updatedProductRequest = await _productHelper.CreateProductRequestModel(
+            // Act
+            var getResponse = await _client.GetAsync($"/api/product/{createdProduct.ProductId}");
+
+            // Assert
+            getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var productResponseModel = await DeserializeResponse<ProductResponseModel>(getResponse);
+            productResponseModel.ProductId.Should().Be(createdProduct.ProductId);
+        }
+
+        [Fact]
+        public async Task GetById_WithNonExistentId_ReturnsNotFound()
+        {
+            // Arrange
+            var nonExistentId = 9999;
+
+            // Act
+            var getResponse = await _client.GetAsync($"/api/product/{nonExistentId}");
+
+            // Assert
+            getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+
+        [Fact]
+        public async Task Put_UpdatesExistingProduct()
+        {
+            // Arrange
+            var createdProduct = await _productHelper.CreateTestProduct();
+
+            var updatedProductRequestModel = _productHelper.CreateProductRequestModel(
                 name: "Updated Product",
                 description: "Updated Description",
                 price: 20.99,
                 stockQuantity: 50,
                 categoryId: createdProduct.CategoryId,
-                imageDescription: "Updated Image Description"
-            );
+                imageDescription: "Updated Image Description");
 
-            var updatedContent = _productHelper.CreateMultipartFormDataContent(updatedProductRequest);
+            var putContent = _productHelper.CreateMultipartFormDataContent(updatedProductRequestModel);
 
-            var response = await _client.PutAsync($"/api/product/{createdProduct.ProductId}", updatedContent);
+            // Act
+            var putResponse = await _client.PutAsync($"/api/product/{createdProduct.ProductId}", putContent);
 
-            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+            // Assert
+            putResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
             var getResponse = await _client.GetAsync($"/api/product/{createdProduct.ProductId}");
-            var updatedProduct = await DeserializeResponse<ProductResponseModel>(getResponse);
-
-            updatedProduct.Name.Should().Be(updatedProductRequest.Name);
-            updatedProduct.Description.Should().Be(updatedProductRequest.Description);
+            var productResponseModel = await DeserializeResponse<ProductResponseModel>(getResponse);
+            productResponseModel.Name.Should().Be(updatedProductRequestModel.Name);
+            productResponseModel.Description.Should().Be(updatedProductRequestModel.Description);
         }
 
         [Fact]
-        public async Task DeleteProductById_RemovesProduct()
+        public async Task Put_WithInvalidData_ReturnsBadRequest()
         {
+            // Arrange
+            var createdProduct = await _productHelper.CreateTestProduct();
+            var invalidProductRequestModel = _productHelper.CreateProductRequestModel(name: "");
+            var putContent = _productHelper.CreateMultipartFormDataContent(invalidProductRequestModel);
+
+            // Act
+            var putResponse = await _client.PutAsync($"/api/product/{createdProduct.CategoryId}", putContent);
+
+            // Assert
+            putResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        }
+
+        [Fact]
+        public async Task Delete_RemovesProduct()
+        {
+            // Arrange
             var createdProduct = await _productHelper.CreateTestProduct();
 
+            // Act
             var deleteResponse = await _client.DeleteAsync($"/api/product/{createdProduct.ProductId}");
 
+            // Assert
             deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
             var getResponse = await _client.GetAsync($"/api/product/{createdProduct.ProductId}");
             getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        }
+
+        [Fact]
+        public async Task Delete_WithNonExistentId_ReturnsNotFound()
+        {
+            // Arrange
+            var nonExistentId = 9999;
+
+            // Act
+            var deleteResponse = await _client.DeleteAsync($"/api/product/{nonExistentId}");
+
+            // Assert
+            deleteResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
     }
 }

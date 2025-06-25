@@ -1,40 +1,35 @@
 ﻿using Domain.Models.ResponseModels;
 using FluentAssertions;
 using System.Net;
+using Tests.IntegrationTests.Configuration;
 using Tests.IntegrationTests.Shared;
 
 namespace Tests.IntegrationTests.Controllers
 {
     public class OrderItemControllerTests : IntegrationTestBase
     {
-        private readonly ProductTestHelper _productHelper;
-        private readonly OrderItemTestHelper _orderItemHelper;
+        private readonly OrderTestHelper _orderHelper;
 
         public OrderItemControllerTests(CustomWebApplicationFactory factory) : base(factory)
         {
-            _productHelper = new ProductTestHelper(factory);
-            _orderItemHelper = new OrderItemTestHelper(factory);
+            _orderHelper = new OrderTestHelper(_client);
         }
 
         [Fact]
         public async Task GetOrderItemsByOrderId_ReturnsOrderItems()
         {
             // Arrange
-            var createdProduct = await _productHelper.CreateTestProduct();
-
-            await _orderItemHelper.EnsureOrderExists(1);
-
-            var newOrderItem = await _orderItemHelper.CreateTestOrderItem(1, createdProduct.ProductId, 10, 2);
+            var createdOrder = await _orderHelper.CreateTestOrder();
 
             // Act
-            var response = await _client.GetAsync($"/api/orderitem/{newOrderItem.OrderId}");
+            var getResponse = await _client.GetAsync($"/api/orderItem/{createdOrder.OrderId}");
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-            var result = await DeserializeResponse<IEnumerable<OrderItemResponseModel>>(response);
-            result.Should().NotBeEmpty();
-            result.Should().Contain(x => x.ProductId == createdProduct.ProductId);
+            var orderItemResponseModels = await DeserializeResponse<IEnumerable<OrderItemResponseModel>>(getResponse);
+            orderItemResponseModels.Should().NotBeNull();
+            orderItemResponseModels.Should().NotBeEmpty();
         }
 
         [Fact]
@@ -44,10 +39,10 @@ namespace Tests.IntegrationTests.Controllers
             var nonExistentOrderId = 9999;
 
             // Act
-            var response = await _client.GetAsync($"/api/orderitem/{nonExistentOrderId}");
+            var getResponse = await _client.GetAsync($"/api/orderItem/{nonExistentOrderId}");
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
     }
 }

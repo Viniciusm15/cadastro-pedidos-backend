@@ -1,101 +1,87 @@
 ﻿using Domain.Enums;
-using Domain.Models.Entities;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
-using Infra.Data;
-using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
+using Tests.IntegrationTests.Configuration;
 
 namespace Tests.IntegrationTests.Shared
 {
-    public class OrderTestHelper(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
+    public class OrderTestHelper(HttpClient client)
     {
-        public async Task<Order> CreateTestOrder(
-            int clientId = 1,
-            List<OrderItem>? items = null,
-            OrderStatus status = OrderStatus.Pending,
-            double? totalValue = null)
-        {
-            var orderItems = items ?? new List<OrderItem>();
-            var calculatedTotal = totalValue ?? orderItems.Sum(i => i.Quantity * i.UnitaryPrice);
+        private readonly HttpClient _client = client;
+        private readonly ProductTestHelper _productHelper = new(client);
+        private readonly ClientTestHelper _clientHelper = new(client);
 
-            var newOrder = new Order
+        public OrderRequestModel CreateOrderRequestModel(
+            int clientId = 0,
+            DateTime? orderDate = null,
+            OrderStatus status = OrderStatus.Pending,
+            double totalValue = 0,
+            List<OrderItemRequestModel>? items = null)
+        {
+            return new OrderRequestModel
             {
                 ClientId = clientId,
-                OrderDate = DateTime.UtcNow,
+                OrderDate = orderDate ?? DateTime.UtcNow.Date,
                 Status = status,
-                TotalValue = calculatedTotal,
-                OrderItens = orderItems
+                TotalValue = totalValue,
+                OrderItems = items ?? []
             };
-
-            using var scope = _factory.Services.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-            dbContext.Orders.Add(newOrder);
-            await dbContext.SaveChangesAsync();
-
-            return newOrder;
         }
 
-        public async Task<Order> CreateTestOrderWithItems(
-            int clientId = 1,
-            List<(int productId, int quantity, double price)>? items = null,
+        public async Task<OrderRequestModel> CreateOrderRequestModelWithProductAndClient(
             OrderStatus status = OrderStatus.Pending,
-            double? totalValue = null)
+            int quantity = 2,
+            double? unitaryPrice = null)
         {
-            var orderItems = items?.Select(i => new OrderItem
-            {
-                ProductId = i.productId,
-                Quantity = i.quantity,
-                UnitaryPrice = i.price
-            }).ToList() ?? new List<OrderItem>();
+            var product = await _productHelper.CreateTestProduct(price: unitaryPrice ?? 20.0);
+            var client = await _clientHelper.CreateTestClient();
+            var total = (unitaryPrice ?? product.Price) * quantity;
 
-            return await CreateTestOrder(clientId, orderItems, status, totalValue);
+            return CreateOrderRequestModel(
+                clientId: client.ClientId,
+                orderDate: DateTime.UtcNow.Date,
+                status: status,
+                totalValue: total,
+                items:
+                [
+                    new OrderItemRequestModel
+                    {
+                        ProductId = product.ProductId,
+                        Quantity = quantity,
+                        UnitaryPrice = product.Price
+                    }
+                ]);
         }
 
-        public async Task<OrderResponseModel> CreateTestOrderThroughApi(
-            int clientId = 1,
-            List<OrderItemRequestModel>? items = null,
+        public async Task<OrderResponseModel> CreateTestOrder(
+            int? clientId = null,
             OrderStatus status = OrderStatus.Pending,
-            double? totalValue = null)
+            int quantity = 2,
+            double? unitaryPrice = null)
         {
-            var orderItems = items ?? new List<OrderItemRequestModel>();
-            var calculatedTotal = totalValue ?? orderItems.Sum(i => i.Quantity * i.UnitaryPrice);
+            var product = await _productHelper.CreateTestProduct(price: unitaryPrice ?? 20.0);
+            var client = await _clientHelper.CreateTestClient();
 
-            var orderRequest = new OrderRequestModel
-            {
-                ClientId = clientId,
-                OrderDate = DateTime.UtcNow.Date,
-                TotalValue = calculatedTotal,
-                Status = status,
-                OrderItems = orderItems
-            };
+            var total = (unitaryPrice ?? product.Price) * quantity;
 
-            var response = await _client.PostAsJsonAsync("/api/order", orderRequest);
-            return await DeserializeResponse<OrderResponseModel>(response);
-        }
+            var orderRequestModel = CreateOrderRequestModel(
+                clientId: client.ClientId,
+                orderDate: DateTime.UtcNow.Date,
+                status: status,
+                totalValue: total,
+                items:
+                [
+                    new OrderItemRequestModel
+                    {
+                        ProductId = product.ProductId,
+                        Quantity = quantity,
+                        UnitaryPrice = product.Price
+                    }
+                ]);
 
-        public async Task EnsureOrderExists(
-            int orderId,
-            int clientId = 1,
-            double totalValue = 0)
-        {
-            using var scope = _factory.Services.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-            var existingOrder = await dbContext.Orders.FindAsync(orderId);
-            if (existingOrder == null)
-            {
-                dbContext.Orders.Add(new Order
-                {
-                    Id = orderId,
-                    ClientId = clientId,
-                    OrderDate = DateTime.UtcNow,
-                    TotalValue = totalValue,
-                    Status = OrderStatus.Pending
-                });
-                await dbContext.SaveChangesAsync();
-            }
+            var postResponse = await _client.PostAsJsonAsync("/api/order", orderRequestModel);
+            return await IntegrationTestBase.DeserializeResponse<OrderResponseModel>(postResponse);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace Tests.IntegrationTests.Shared
+namespace Tests.IntegrationTests.Configuration
 {
     public abstract class IntegrationTestBase : IClassFixture<CustomWebApplicationFactory>
     {
@@ -15,7 +15,7 @@ namespace Tests.IntegrationTests.Shared
             _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
-        protected static async Task<T> DeserializeResponse<T>(HttpResponseMessage response)
+        protected internal static async Task<T> DeserializeResponse<T>(HttpResponseMessage response)
         {
             var content = await response.Content.ReadAsStringAsync();
 

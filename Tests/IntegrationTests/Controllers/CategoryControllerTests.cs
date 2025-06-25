@@ -1,24 +1,34 @@
 ﻿using Common.Models;
-using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using FluentAssertions;
 using System.Net;
 using System.Net.Http.Json;
+using Tests.IntegrationTests.Configuration;
 using Tests.IntegrationTests.Shared;
 
 namespace Tests.IntegrationTests.Controllers
 {
-    public class CategoryControllerTests(CustomWebApplicationFactory factory) : IntegrationTestBase(factory)
+    public class CategoryControllerTests : IntegrationTestBase
     {
+        private readonly CategoryTestHelper _categoryHelper;
+
+        public CategoryControllerTests(CustomWebApplicationFactory factory) : base(factory)
+        {
+            _categoryHelper = new CategoryTestHelper(_client);
+        }
+
         [Fact]
         public async Task GetAll_ReturnsPagedCategories()
         {
+            // Arrange
+            await _categoryHelper.CreateTestCategory();
+
             // Act
-            var response = await _client.GetAsync("/api/category?pageNumber=1&pageSize=10");
+            var getResponse = await _client.GetAsync("/api/category?pageNumber=1&pageSize=10");
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var result = await DeserializeResponse<PagedResult<CategoryResponseModel>>(response);
+            getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var result = await DeserializeResponse<PagedResult<CategoryResponseModel>>(getResponse);
             result.Should().NotBeNull();
             result.Items.Should().NotBeNull();
         }
@@ -27,63 +37,48 @@ namespace Tests.IntegrationTests.Controllers
         public async Task Post_CreatesNewCategory()
         {
             // Arrange
-            var newCategory = new CategoryRequestModel
-            {
-                Name = "Test Category",
-                Description = "Test Description"
-            };
+            var categoryRequestModel = _categoryHelper.CreateCategoryRequestModel();
 
             // Act
-            var response = await _client.PostAsJsonAsync("/api/category", newCategory);
+            var postResponse = await _client.PostAsJsonAsync("/api/category", categoryRequestModel);
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.Created);
-            response.Headers.Location.Should().NotBeNull();
+            postResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+            postResponse.Headers.Location.Should().NotBeNull();
 
-            var createdCategory = await DeserializeResponse<CategoryResponseModel>(response);
-            createdCategory.Name.Should().Be(newCategory.Name);
-            createdCategory.Description.Should().Be(newCategory.Description);
+            var categoryResponseModel = await DeserializeResponse<CategoryResponseModel>(postResponse);
+            categoryResponseModel.Name.Should().Be(categoryRequestModel.Name);
+            categoryResponseModel.Description.Should().Be(categoryRequestModel.Description);
         }
 
         [Fact]
         public async Task Post_WithInvalidData_ReturnsBadRequest()
         {
             // Arrange
-            var invalidCategory = new CategoryRequestModel
-            {
-                Name = "",
-                Description = "Test Description"
-            };
+            var invalidCategoryRequestModel = _categoryHelper.CreateCategoryRequestModel(name: "");
 
             // Act
-            var response = await _client.PostAsJsonAsync("/api/category", invalidCategory);
+            var postResponse = await _client.PostAsJsonAsync("/api/category", invalidCategoryRequestModel);
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            postResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         }
 
         [Fact]
         public async Task GetById_ReturnsCreatedCategory()
         {
             // Arrange
-            var newCategory = new CategoryRequestModel
-            {
-                Name = "Test GetById",
-                Description = "Test Description"
-            };
-
-            var createResponse = await _client.PostAsJsonAsync("/api/category", newCategory);
-            var createdCategory = await DeserializeResponse<CategoryResponseModel>(createResponse);
+            var createdCategory = await _categoryHelper.CreateTestCategory();
 
             // Act
-            var response = await _client.GetAsync($"/api/category/{createdCategory.CategoryId}");
+            var getResponse = await _client.GetAsync($"/api/category/{createdCategory.CategoryId}");
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            var category = await DeserializeResponse<CategoryResponseModel>(response);
-            category.CategoryId.Should().Be(createdCategory.CategoryId);
-            category.Name.Should().Be(newCategory.Name);
-            category.Description.Should().Be(newCategory.Description);
+            getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+            var categoryResponseModel = await DeserializeResponse<CategoryResponseModel>(getResponse);
+            categoryResponseModel.CategoryId.Should().Be(createdCategory.CategoryId);
+            categoryResponseModel.Name.Should().Be(createdCategory.Name);
+            categoryResponseModel.Description.Should().Be(createdCategory.Description);
         }
 
         [Fact]
@@ -93,42 +88,30 @@ namespace Tests.IntegrationTests.Controllers
             var nonExistentId = 9999;
 
             // Act
-            var response = await _client.GetAsync($"/api/category/{nonExistentId}");
+            var getResponse = await _client.GetAsync($"/api/category/{nonExistentId}");
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
         [Fact]
         public async Task Put_UpdatesExistingCategory()
         {
             // Arrange
-            var newCategory = new CategoryRequestModel
-            {
-                Name = "Test Put",
-                Description = "Test Description"
-            };
-
-            var createResponse = await _client.PostAsJsonAsync("/api/category", newCategory);
-            var createdCategory = await DeserializeResponse<CategoryResponseModel>(createResponse);
-
-            var updatedCategory = new CategoryRequestModel
-            {
-                Name = "Updated Name",
-                Description = "Updated Description"
-            };
+            var createdCategory = await _categoryHelper.CreateTestCategory();
+            var updatedCategoryRequestModel = _categoryHelper.CreateCategoryRequestModel(
+                name: "Updated Name", description: "Updated Description");
 
             // Act
-            var response = await _client.PutAsJsonAsync($"/api/category/{createdCategory.CategoryId}", updatedCategory);
+            var putResponse = await _client.PutAsJsonAsync($"/api/category/{createdCategory.CategoryId}", updatedCategoryRequestModel);
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+            putResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-            // Verify the update
             var getResponse = await _client.GetAsync($"/api/category/{createdCategory.CategoryId}");
-            var category = await DeserializeResponse<CategoryResponseModel>(getResponse);
-            category.Name.Should().Be(updatedCategory.Name);
-            category.Description.Should().Be(updatedCategory.Description);
+            var categoryResponseModel = await DeserializeResponse<CategoryResponseModel>(getResponse);
+            categoryResponseModel.Name.Should().Be(updatedCategoryRequestModel.Name);
+            categoryResponseModel.Description.Should().Be(updatedCategoryRequestModel.Description);
         }
 
         [Fact]
@@ -136,57 +119,35 @@ namespace Tests.IntegrationTests.Controllers
         {
             // Arrange
             var nonExistentId = 9999;
-            var updatedCategory = new CategoryRequestModel
-            {
-                Name = "Updated Name",
-                Description = "Updated Description"
-            };
+            var updatedCategoryRequestModel = _categoryHelper.CreateCategoryRequestModel(
+                name: "Updated Name", description: "Updated Description");
 
             // Act
-            var response = await _client.PutAsJsonAsync($"/api/category/{nonExistentId}", updatedCategory);
+            var putResponse = await _client.PutAsJsonAsync($"/api/category/{nonExistentId}", updatedCategoryRequestModel);
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            putResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
         [Fact]
         public async Task Put_WithInvalidData_ReturnsBadRequest()
         {
             // Arrange
-            var newCategory = new CategoryRequestModel
-            {
-                Name = "Test Put Invalid",
-                Description = "Test Description"
-            };
-
-            var createResponse = await _client.PostAsJsonAsync("/api/category", newCategory);
-            var createdCategory = await DeserializeResponse<CategoryResponseModel>(createResponse);
-
-            var invalidCategory = new CategoryRequestModel
-            {
-                Name = "", // Nome inválido
-                Description = "Updated Description"
-            };
+            var createdCategory = await _categoryHelper.CreateTestCategory();
+            var invalidCategoryRequestModel = _categoryHelper.CreateCategoryRequestModel(name: "");
 
             // Act
-            var response = await _client.PutAsJsonAsync($"/api/category/{createdCategory.CategoryId}", invalidCategory);
+            var putResponse = await _client.PutAsJsonAsync($"/api/category/{createdCategory.CategoryId}", invalidCategoryRequestModel);
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            putResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         }
 
         [Fact]
         public async Task Delete_RemovesCategory()
         {
             // Arrange
-            var newCategory = new CategoryRequestModel
-            {
-                Name = "Test Delete",
-                Description = "Test Description"
-            };
-
-            var createResponse = await _client.PostAsJsonAsync("/api/category", newCategory);
-            var createdCategory = await DeserializeResponse<CategoryResponseModel>(createResponse);
+            var createdCategory = await _categoryHelper.CreateTestCategory();
 
             // Act
             var deleteResponse = await _client.DeleteAsync($"/api/category/{createdCategory.CategoryId}");
@@ -205,10 +166,10 @@ namespace Tests.IntegrationTests.Controllers
             var nonExistentId = 9999;
 
             // Act
-            var response = await _client.DeleteAsync($"/api/category/{nonExistentId}");
+            var deleteResponse = await _client.DeleteAsync($"/api/category/{nonExistentId}");
 
             // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+            deleteResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
     }
 }
