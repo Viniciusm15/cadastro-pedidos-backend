@@ -126,6 +126,10 @@ namespace Web.Controllers
             {
                 return NotFound(ex.Message);
             }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.ValidationErrors);
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
