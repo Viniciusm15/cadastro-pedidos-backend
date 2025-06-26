@@ -40,7 +40,7 @@ namespace Tests.IntegrationTests.Shared
 
             return CreateOrderRequestModel(
                 clientId: client.ClientId,
-                orderDate: DateTime.UtcNow.Date,
+                orderDate: DateTime.UtcNow.Date.AddDays(-1),
                 status: status,
                 totalValue: total,
                 items:
@@ -67,7 +67,7 @@ namespace Tests.IntegrationTests.Shared
 
             var orderRequestModel = CreateOrderRequestModel(
                 clientId: client.ClientId,
-                orderDate: DateTime.UtcNow.Date,
+                orderDate: DateTime.UtcNow.Date.AddDays(-1),
                 status: status,
                 totalValue: total,
                 items:
