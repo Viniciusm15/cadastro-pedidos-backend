@@ -1,9 +1,7 @@
 ﻿using Common.Models;
-using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using FluentAssertions;
 using System.Net;
-using System.Net.Http.Json;
 using Tests.IntegrationTests.Configuration;
 using Tests.IntegrationTests.Shared;
 
@@ -124,6 +122,28 @@ namespace Tests.IntegrationTests.Controllers
             var productResponseModel = await DeserializeResponse<ProductResponseModel>(getResponse);
             productResponseModel.Name.Should().Be(updatedProductRequestModel.Name);
             productResponseModel.Description.Should().Be(updatedProductRequestModel.Description);
+        }
+
+        [Fact]
+        public async Task Put_WithNonExistentId_ReturnsNotFound()
+        {
+            // Arrange
+            var nonExistentId = 9999;
+            var updatedProductRequestModel = _productHelper.CreateProductRequestModel(
+               name: "Updated Product",
+               description: "Updated Description",
+               price: 20.99,
+               stockQuantity: 50,
+               categoryId: 1,
+               imageDescription: "Updated Image Description");
+
+            var putContent = _productHelper.CreateMultipartFormDataContent(updatedProductRequestModel);
+
+            // Act
+            var putResponse = await _client.PutAsync($"/api/product/{nonExistentId}", putContent);
+
+            // Assert
+            putResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
 
         [Fact]
