@@ -361,3 +361,23 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# ========================
+# Docker
+# ========================
+
+# Arquivos de ambiente (sensíveis)
+.env
+.env.local
+.env.*.local
+
+# Docker volumes e logs locais
+**/data/
+**/logs/
+**/tmp/
+volumes/
+*.pid
+*.sock
+
+# Docker Desktop
+.docker/

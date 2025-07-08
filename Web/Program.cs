@@ -20,7 +20,7 @@ builder.Services.AddApplicationServices();
 builder.Services.AddRepositories();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddCors(options =>
 {
@@ -47,6 +47,7 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "OrderRegistrationWebApplication V1");
     });
+    app.ApplyMigrations();
     app.UseDeveloperExceptionPage();
 }
 
@@ -62,5 +63,5 @@ app.MapControllers();
 
 app.Run();
 
-// Necessário para os testes de integração
+// Required for integration testing
 public partial class Program { }

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -18,7 +17,7 @@ namespace Tests.IntegrationTests.Configuration
             builder.ConfigureServices(services =>
             {
                 var descriptor = services.SingleOrDefault(d =>
-                    d.ServiceType == typeof(IDbContextOptionsConfiguration<ApplicationDbContext>));
+                    d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
 
                 if (descriptor != null)
                 {

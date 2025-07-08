@@ -1,33 +1,34 @@
-# Build stage
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
+# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-# 1. Copia o arquivo de solução e projetos
-COPY ["OrderRegistration_BackEnd.sln", "."]
+# This stage is used when running from VS in fast mode (Default for Debug configuration)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+USER $APP_UID
+WORKDIR /app
+EXPOSE 8080
+EXPOSE 8081
+
+
+# This stage is used to build the service project
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
 COPY ["Web/Web.csproj", "Web/"]
 COPY ["Application/Application.csproj", "Application/"]
+COPY ["Common/Common.csproj", "Common/"]
 COPY ["Domain/Domain.csproj", "Domain/"]
 COPY ["Infra/Infra.csproj", "Infra/"]
-COPY ["Common/Common.csproj", "Common/"]
-
-# 2. Restaura todos os projetos
-RUN dotnet restore "OrderRegistration_BackEnd.sln"
-
-# 3. Copia todo o código fonte
+RUN dotnet restore "./Web/Web.csproj"
 COPY . .
-
-# 4. Build da solução completa
-RUN dotnet build "OrderRegistration_BackEnd.sln" -c Release --no-restore -o /app/build
-
-# 5. Publicação otimizada
-FROM build AS publish
 WORKDIR "/src/Web"
-RUN dotnet publish "Web.csproj" -c Release -o /app/publish \
-    /p:UseAppHost=true
+RUN dotnet build "./Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+# This stage is used to publish the service project to be copied to the final stage
+FROM build AS publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "./Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+
+# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
+FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENV ASPNETCORE_URLS=http://+:8080
 ENTRYPOINT ["dotnet", "Web.dll"]

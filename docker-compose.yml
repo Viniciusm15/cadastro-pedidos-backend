@@ -1,53 +1,30 @@
-﻿version: '3.8'
-
 services:
-  db:
-    image: postgres:16
-    container_name: postgres
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: SenhaForte@123
-      POSTGRES_DB: OrderRegistration
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d OrderRegistration"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: always
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-
   web:
+    image: ${DOCKER_REGISTRY-}web
+    container_name: order-registration-application
     build:
       context: .
       dockerfile: Web/Dockerfile
-    container_name: webapp
     environment:
-      ASPNETCORE_ENVIRONMENT: "Development"
-      ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__DefaultConnection: "Host=db;Database=OrderRegistration;Username=admin;Password=SenhaForte@123"
+      - ConnectionStrings__DefaultConnection=Server=${DB_SERVER};Database=${DB_NAME};User Id=${DB_USER};Password=${DB_PASSWORD};TrustServerCertificate=True;Connect Timeout=60;
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
     ports:
-      - "8080:8080"
+      - "5000:5000"
+      - "5001:5001"
     depends_on:
-      db:
-        condition: service_healthy
-    restart: always
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
+      - database
+
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: order-registration-sqlserver
+    environment:
+      SA_PASSWORD: "${SQL_SA_PASSWORD}"
+      ACCEPT_EULA: "${ACCEPT_EULA}"
+      MSSQL_PID: "${MSSQL_PID}"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
 
 volumes:
-  postgres-data:
+  mssql_data:
