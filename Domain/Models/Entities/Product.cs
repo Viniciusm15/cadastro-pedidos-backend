@@ -6,7 +6,7 @@ namespace Domain.Models.Entities
     {
         public Product()
         {
-            OrderItens = new List<OrderItem>();
+            OrderItems = new List<OrderItem>();
         }
 
         public required string Name { get; set; }
@@ -19,6 +19,6 @@ namespace Domain.Models.Entities
         public int ImageId { get; set; }
         public Image Image { get; set; }
 
-        public ICollection<OrderItem> OrderItens { get; set; }
+        public ICollection<OrderItem> OrderItems { get; set; }
     }
 }

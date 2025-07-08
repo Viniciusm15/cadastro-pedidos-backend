@@ -7,7 +7,7 @@ namespace Domain.Models.Entities
     {
         public Order()
         {
-            OrderItens = new List<OrderItem>();
+            OrderItems = new List<OrderItem>();
         }
 
         public DateTime OrderDate { get; set; }
@@ -17,6 +17,6 @@ namespace Domain.Models.Entities
         public int ClientId { get; set; }
         public Client Client { get; set; }
 
-        public ICollection<OrderItem> OrderItens { get; set; }
+        public ICollection<OrderItem> OrderItems { get; set; }
     }
 }

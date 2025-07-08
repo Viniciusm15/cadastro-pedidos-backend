@@ -22,7 +22,7 @@ namespace Infra.Repositories
                 .WhereActive()
                 .OrderBy(order => order.OrderDate)
                 .Include(order => order.Client)
-                .Include(order => order.OrderItens);
+                .Include(order => order.OrderItems);
 
             return await query.ToListAsync();
         }
@@ -33,7 +33,7 @@ namespace Infra.Repositories
                 .WhereActive()
                 .OrderBy(order => order.OrderDate)
                 .Include(order => order.Client)
-                .Include(order => order.OrderItens);
+                .Include(order => order.OrderItems);
 
             var totalCount = await query.CountAsync();
 
@@ -50,7 +50,7 @@ namespace Infra.Repositories
             return await _context.Orders
                 .WhereActive()
                 .Include(order => order.Client)
-                .Include(order => order.OrderItens)
+                .Include(order => order.OrderItems)
                 .FirstOrDefaultAsync(order => order.Id == id);
         }
     }

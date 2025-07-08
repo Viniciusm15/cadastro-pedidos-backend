@@ -329,7 +329,7 @@ namespace Tests.UnitTests.Services
                 TotalValue = 100,
                 Status = OrderStatus.Pending,
                 ClientId = 1,
-                OrderItens =
+                OrderItems =
                 [
                     new() { Id = 1, ProductId = 1, Quantity = 2, UnitaryPrice = 25 }
                 ]
@@ -430,7 +430,7 @@ namespace Tests.UnitTests.Services
                 TotalValue = 200,
                 Status = OrderStatus.Delivered,
                 ClientId = 1,
-                OrderItens = []
+                OrderItems = []
             };
 
             var validationErrors = new List<ValidationFailure>
@@ -464,7 +464,7 @@ namespace Tests.UnitTests.Services
             {
                 Id = orderId,
                 Status = OrderStatus.Pending,
-                OrderItens = new List<OrderItem>
+                OrderItems = new List<OrderItem>
                 {
                     new() { Id = 1, ProductId = 1, Quantity = 2 },
                     new() { Id = 2, ProductId = 2, Quantity = 1 }
@@ -533,7 +533,7 @@ namespace Tests.UnitTests.Services
                         Email = "client1@test.com",
                         Telephone = "123456789"
                     },
-                    OrderItens = new List<OrderItem>
+                    OrderItems = new List<OrderItem>
                     {
                         new() { Quantity = 2 },
                         new() { Quantity = 1 }

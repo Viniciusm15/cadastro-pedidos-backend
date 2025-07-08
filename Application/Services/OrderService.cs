@@ -148,7 +148,7 @@ namespace Application.Services
 
                 await _orderItemService.SyncOrderItems(order.Id, orderRequestModel.OrderItems);
                 order = await _orderRepository.GetOrderByIdAsync(order.Id);
-                order.TotalValue = order.OrderItens.Sum(i => i.Subtotal);
+                order.TotalValue = order.OrderItems.Sum(i => i.Subtotal);
 
                 var validationResult = _orderValidator.Validate(order);
                 if (!validationResult.IsValid)
@@ -181,9 +181,9 @@ namespace Application.Services
                 throw new NotFoundException($"Order not found by ID: {id}");
             }
 
-            if (order.OrderItens.Any())
+            if (order.OrderItems.Any())
             {
-                foreach (var orderItem in order.OrderItens)
+                foreach (var orderItem in order.OrderItems)
                 {
                     await _orderItemService.DeleteOrderItem(orderItem.Id);
                     _logger.LogInformation("Order item with ID: {OrderItemId} deleted", orderItem.Id);
@@ -220,7 +220,7 @@ namespace Application.Services
                     OrderDate = order.OrderDate.ToString("MM/dd/yyyy"),
                     ClientName = order.Client?.Name ?? "No Client",
                     Status = order.Status.ToString(),
-                    TotalItems = order.OrderItens?.Sum(i => i.Quantity) ?? 0,
+                    TotalItems = order.OrderItems?.Sum(i => i.Quantity) ?? 0,
                     TotalValue = order.TotalValue
                 }).ToList();
 

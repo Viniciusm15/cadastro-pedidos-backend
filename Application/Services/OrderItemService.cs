@@ -35,7 +35,7 @@ namespace Application.Services
                 throw new NotFoundException($"Order item not found by ID: {orderId}");
             }
 
-            _logger.LogInformation("Retrieved {OrderItens} order itens", orderItems.Count());
+            _logger.LogInformation("Retrieved {OrderItems} order itens", orderItems.Count());
             return orderItems.Select(orderItem => new OrderItemResponseModel
             {
                 OrderId = orderItem.OrderId,

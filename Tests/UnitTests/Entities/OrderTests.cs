@@ -8,14 +8,14 @@ namespace Tests.UnitTests.Entities
     public class OrderTests
     {
         [Fact]
-        public void Constructor_ShouldInitializeOrderItensAsEmptyList()
+        public void Constructor_ShouldInitializeOrderItemsAsEmptyList()
         {
             // Arrange & Act
             var order = new Order();
 
             // Assert
-            order.OrderItens.Should().NotBeNull();
-            order.OrderItens.Should().BeEmpty();
+            order.OrderItems.Should().NotBeNull();
+            order.OrderItems.Should().BeEmpty();
         }
 
         [Fact]

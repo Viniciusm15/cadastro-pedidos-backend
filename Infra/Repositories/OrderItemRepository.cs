@@ -17,7 +17,7 @@ namespace Infra.Repositories
 
         public async Task<IEnumerable<OrderItem>> GetByOrderIdAsync(int orderId)
         {
-            return await _context.OrderItens
+            return await _context.OrderItems
                 .Where(orderItem => orderItem.OrderId == orderId)
                 .WhereActive()
                 .Include(orderItem => orderItem.Order)

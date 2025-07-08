@@ -8,7 +8,7 @@ namespace Tests.UnitTests.Entities
     public class ProductTests
     {
         [Fact]
-        public void Constructor_ShouldInitializeOrderItensAsEmptyList()
+        public void Constructor_ShouldInitializeOrderItemsAsEmptyList()
         {
             // Arrange & Act
             var product = new Product
@@ -20,8 +20,8 @@ namespace Tests.UnitTests.Entities
             };
 
             // Assert
-            product.OrderItens.Should().NotBeNull();
-            product.OrderItens.Should().BeEmpty();
+            product.OrderItems.Should().NotBeNull();
+            product.OrderItems.Should().BeEmpty();
         }
 
         [Fact]

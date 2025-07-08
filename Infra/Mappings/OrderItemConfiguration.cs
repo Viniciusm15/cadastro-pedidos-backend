@@ -8,7 +8,7 @@ namespace Infra.Mappings
     {
         public void Configure(EntityTypeBuilder<OrderItem> builder)
         {
-            builder.ToTable("OrderItens");
+            builder.ToTable("OrderItems");
 
             builder.HasKey(oi => oi.Id);
 
@@ -19,11 +19,11 @@ namespace Infra.Mappings
                 .IsRequired();
 
             builder.HasOne(oi => oi.Order)
-                .WithMany(o => o.OrderItens)
+                .WithMany(o => o.OrderItems)
                 .HasForeignKey(oi => oi.OrderId);
 
             builder.HasOne(oi => oi.Product)
-                .WithMany(p => p.OrderItens)
+                .WithMany(p => p.OrderItems)
                 .HasForeignKey(oi => oi.ProductId);
         }
     }
