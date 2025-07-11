@@ -47,6 +47,7 @@ namespace Tests.IntegrationTests.Controllers
             postResponse.Headers.Location.Should().NotBeNull();
 
             var clientResponseModel = await DeserializeResponse<ClientResponseModel>(postResponse);
+            clientResponseModel.ClientId.Should().BeGreaterThan(0);
             clientResponseModel.Name.Should().Be(clientRequestModel.Name);
             clientResponseModel.Email.Should().Be(clientRequestModel.Email);
             clientResponseModel.Telephone.Should().Be(clientRequestModel.Telephone);

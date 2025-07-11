@@ -55,7 +55,6 @@ namespace Tests.IntegrationTests.Shared
         }
 
         public async Task<OrderResponseModel> CreateTestOrder(
-            int? clientId = null,
             OrderStatus status = OrderStatus.Pending,
             int quantity = 2,
             double? unitaryPrice = null)

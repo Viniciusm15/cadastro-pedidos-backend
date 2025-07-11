@@ -48,6 +48,7 @@ namespace Tests.IntegrationTests.Controllers
             postResponse.Headers.Location.Should().NotBeNull();
 
             var orderResponseModel = await DeserializeResponse<OrderResponseModel>(postResponse);
+            orderResponseModel.OrderId.Should().BeGreaterThan(0);
             orderResponseModel.ClientId.Should().Be(orderRequestModel.ClientId);
             orderResponseModel.Status.Should().Be(orderRequestModel.Status);
             orderResponseModel.TotalValue.Should().Be(orderRequestModel.TotalValue);

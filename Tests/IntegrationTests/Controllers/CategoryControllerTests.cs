@@ -47,6 +47,7 @@ namespace Tests.IntegrationTests.Controllers
             postResponse.Headers.Location.Should().NotBeNull();
 
             var categoryResponseModel = await DeserializeResponse<CategoryResponseModel>(postResponse);
+            categoryResponseModel.CategoryId.Should().BeGreaterThan(0);
             categoryResponseModel.Name.Should().Be(categoryRequestModel.Name);
             categoryResponseModel.Description.Should().Be(categoryRequestModel.Description);
         }

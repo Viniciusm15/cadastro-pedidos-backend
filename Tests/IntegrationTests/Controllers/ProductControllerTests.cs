@@ -36,7 +36,7 @@ namespace Tests.IntegrationTests.Controllers
         public async Task Post_CreatesNewProduct()
         {
             // Arrange
-            var productRequestModel = _productHelper.CreateProductRequestModel(categoryId: 1);
+            var productRequestModel = await _productHelper.CreateProductRequestModelWithCategoryAsync();
             var postContent = _productHelper.CreateMultipartFormDataContent(productRequestModel);
 
             // Act
@@ -47,6 +47,7 @@ namespace Tests.IntegrationTests.Controllers
             postResponse.Headers.Location.Should().NotBeNull();
 
             var productResponseModel = await DeserializeResponse<ProductResponseModel>(postResponse);
+            productResponseModel.ProductId.Should().BeGreaterThan(0);
             productResponseModel.Name.Should().Be(productRequestModel.Name);
             productResponseModel.Description.Should().Be(productRequestModel.Description);
             productResponseModel.Price.Should().Be(productRequestModel.Price);
@@ -58,7 +59,7 @@ namespace Tests.IntegrationTests.Controllers
         public async Task Post_WithInvalidData_ReturnsBadRequest()
         {
             // Arrange
-            var productRequestModel = _productHelper.CreateProductRequestModel(categoryId: 1, name: "");
+            var productRequestModel = await _productHelper.CreateProductRequestModelWithCategoryAsync(name: "");
             var postContent = _productHelper.CreateMultipartFormDataContent(productRequestModel);
 
             // Act
