@@ -122,8 +122,8 @@ namespace Application.Services
         public async Task DeleteCategory(int id)
         {
             _logger.LogInformation("Deleting category with ID: {Id}", id);
-            var category = await _categoryRepository.GetCategoryByIdAsync(id);
 
+            var category = await _categoryRepository.GetCategoryByIdAsync(id);
             if (category == null)
             {
                 _logger.LogError("Category not found by ID: {Id}", id);
@@ -131,7 +131,7 @@ namespace Application.Services
             }
 
             await _categoryRepository.DeleteAsync(category);
-            _logger.LogInformation("Category deleted with ID: {ProductId}", id);
+            _logger.LogInformation("Category deleted with ID: {CategoryId}", id);
         }
     }
 }
