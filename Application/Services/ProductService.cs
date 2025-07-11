@@ -40,7 +40,13 @@ namespace Application.Services
                 Price = product.Price,
                 StockQuantity = product.StockQuantity,
                 CategoryId = product.CategoryId,
-                ImageId = product.ImageId,
+                Image = product.Image != null ? new ImageResponseModel
+                {
+                    ImageId = product.Image.Id,
+                    Description = product.Image.Description,
+                    ImageMimeType = product.Image.ImageMimeType,
+                    ImageData = product.Image.ImageData
+                } : null
             }).ToList();
 
             _logger.LogInformation("Retrieved {ProductCount} products on page {PageNumber}", productModels.Count, pageNumber);
@@ -68,7 +74,13 @@ namespace Application.Services
                 Price = product.Price,
                 StockQuantity = product.StockQuantity,
                 CategoryId = product.CategoryId,
-                ImageId = product.ImageId
+                Image = product.Image != null ? new ImageResponseModel
+                {
+                    ImageId = product.Image.Id,
+                    Description = product.Image.Description,
+                    ImageMimeType = product.Image.ImageMimeType,
+                    ImageData = product.Image.ImageData
+                } : null
             };
         }
 
