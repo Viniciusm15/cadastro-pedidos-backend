@@ -188,5 +188,68 @@ namespace Application.Services
             await _productRepository.DeleteAsync(product);
             _logger.LogInformation("Product deleted with ID: {ProductId}", id);
         }
+
+        public async Task<int> GetLowStockProductsCountAsync(int threshold = 10)
+        {
+            _logger.LogInformation("Retrieving low stock products  (threshold: {Threshold})", threshold);
+            var totalLowStockProdutcs = await _productRepository.GetLowStockProductsCountAsync(threshold);
+
+            _logger.LogInformation("Retrieved total low stock products: {TotalLowStockProdutcs}", totalLowStockProdutcs);
+            return totalLowStockProdutcs;
+        }
+
+        public async Task<PagedResult<DashboardLowStockProductResponseModel>> GetLowStockProductsAsync(int pageNumber = 1, int pageSize = 10, int threshold = 10)
+        {
+            _logger.LogInformation("Retrieving low stock products (threshold: {Threshold}) for page {PageNumber} with size {PageSize}",
+                threshold, pageNumber, pageSize);
+
+            var pagedProducts = await _productRepository.GetLowStockProductsAsync(pageNumber, pageSize, threshold);
+
+            var productModels = pagedProducts.Items.Select(product => new DashboardLowStockProductResponseModel
+            {
+                Id = product.Id,
+                ProductName = product.Name,
+                StockQuantity = product.StockQuantity,
+                CategoryName = product.Category?.Name ?? "Uncategorized"
+            }).ToList();
+
+            _logger.LogInformation("Retrieved {ProductCount} low stock products on page {PageNumber}",
+                productModels.Count, pageNumber);
+
+            return new PagedResult<DashboardLowStockProductResponseModel>(productModels, pagedProducts.TotalCount);
+        }
+
+        public async Task<DashboardRestockResponseModel> RestockProductAsync(int productId, int restockQuantity)
+        {
+            _logger.LogInformation("Starting product restock for ID {ProductId} with quantity {RestockQuantity}",
+                productId, restockQuantity);
+
+            var product = await _productRepository.GetProductByIdAsync(productId);
+            if (product == null)
+            {
+                _logger.LogError("Product not found for restock: {ProductId}", productId);
+                throw new NotFoundException($"Product not found");
+            }
+
+            product.StockQuantity += restockQuantity;
+
+            var validationResult = _productValidator.Validate(product);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogError("Product restock failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
+            }
+
+            await _productRepository.UpdateAsync(product);
+
+            _logger.LogInformation("Product restocked successfully. Product: {ProductId}, New stock: {NewStockQuantity}",
+                productId, product.StockQuantity);
+
+            return new DashboardRestockResponseModel
+            {
+                Message = "Stock replenished successfully",
+                NewStockQuantity = product.StockQuantity
+            };
+        }
     }
 }

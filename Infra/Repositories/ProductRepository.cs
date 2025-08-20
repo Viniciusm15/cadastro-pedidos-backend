@@ -44,5 +44,31 @@ namespace Infra.Repositories
                 .Include(product => product.OrderItems)
                 .FirstOrDefaultAsync(product => product.Id == id);
         }
+
+        public async Task<int> GetLowStockProductsCountAsync(int threshold)
+        {
+            return await _context.Products
+                .WhereActive()
+                .Where(p => p.StockQuantity < threshold)
+                .CountAsync();
+        }
+
+        public async Task<PagedResult<Product>> GetLowStockProductsAsync(int pageNumber, int pageSize, int threshold)
+        {
+            var query = _context.Products
+                .WhereActive()
+                .Include(p => p.Category)
+                .Where(p => p.StockQuantity < threshold)
+                .OrderBy(p => p.StockQuantity);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<Product>(items, totalCount);
+        }
     }
 }

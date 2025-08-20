@@ -17,6 +17,7 @@ namespace Web.Configs
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IImageService, ImageService>();
             services.AddScoped<ICsvService, CsvService>();
+            services.AddScoped<IDashboardService, DashboardService>();
 
             services.AddValidatorsFromAssemblyContaining<CategoryValidator>();
             services.AddValidatorsFromAssemblyContaining<ClientValidator>();

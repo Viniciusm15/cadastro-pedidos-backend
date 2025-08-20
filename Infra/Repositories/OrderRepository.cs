@@ -1,4 +1,5 @@
 ﻿using Common.Models;
+using Domain.Enums;
 using Domain.Interfaces;
 using Domain.Models.Entities;
 using Infra.Data;
@@ -52,6 +53,55 @@ namespace Infra.Repositories
                 .Include(order => order.Client)
                 .Include(order => order.OrderItems)
                 .FirstOrDefaultAsync(order => order.Id == id);
+        }
+
+        public async Task<double> GetTotalOrderSalesAsync()
+        {
+            return await _context.Orders
+                .WhereActive()
+                .SumAsync(o => o.TotalValue);
+        }
+
+        public async Task<double> GetMonthlyOrderSalesAsync(int month, int year)
+        {
+            return await _context.Orders
+                .WhereActive()
+                .Where(o => o.OrderDate.Month == month && o.OrderDate.Year == year)
+                .SumAsync(o => o.TotalValue);
+        }
+
+        public async Task<int> GetOrdersCountByStatusAsync(params OrderStatus[] status)
+        {
+            return await _context.Orders
+                .WhereActive()
+                .Where(o => status.Contains(o.Status))
+                .CountAsync();
+        }
+
+        public async Task<List<Order>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate)
+        {
+            return await _context.Orders
+                .WhereActive()
+                .Where(o => o.OrderDate >= startDate && o.OrderDate <= endDate)
+                .ToListAsync();
+        }
+
+        public async Task<PagedResult<Order>> GetPendingOrdersAsync(int pageNumber, int pageSize)
+        {
+            var query = _context.Orders
+                .WhereActive()
+                .Include(o => o.Client)
+                .Where(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.Processing)
+                .OrderByDescending(o => o.OrderDate);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<Order>(items, totalCount);
         }
     }
 }

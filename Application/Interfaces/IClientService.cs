@@ -11,5 +11,8 @@ namespace Application.Interfaces
         Task<ClientResponseModel> CreateClient(ClientRequestModel clientRequestModel);
         Task UpdateClient(int id, ClientRequestModel clientRequestModel);
         Task DeleteClient(int id);
+        Task<int> GetActiveClientsCountAsync(int months = 6);
+        Task<int> GetNewClientsThisMonthAsync();
+        Task<DashboardClientSummaryResponseModel> GetClientDataAsync();
     }
 }

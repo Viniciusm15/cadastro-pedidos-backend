@@ -161,5 +161,92 @@ namespace Application.Services
             await _clientRepository.DeleteAsync(client);
             _logger.LogInformation("Client deleted with ID: {ProductId}", id);
         }
+
+        public async Task<int> GetActiveClientsCountAsync(int months = 6)
+        {
+            _logger.LogInformation("Retrieving active clients count for last {Months} months", months);
+            var activeClientsCount = await _clientRepository.GetActiveClientsCountAsync(months);
+
+            _logger.LogInformation("Retrieved {ActiveClientsCount} active clients for last {Months} months",
+                activeClientsCount, months);
+
+            return activeClientsCount;
+        }
+
+        public async Task<int> GetNewClientsThisMonthAsync()
+        {
+            var now = DateTime.Now;
+            _logger.LogInformation("Retrieving new clients count for {Month}/{Year}", now.Month, now.Year);
+
+            var newClientsCount = await _clientRepository.GetNewClientsCountAsync(now.Month, now.Year);
+
+            _logger.LogInformation("Retrieved {NewClientsCount} new clients for {Month}/{Year}",
+                newClientsCount, now.Month, now.Year);
+
+            return newClientsCount;
+        }
+
+        public async Task<DashboardClientSummaryResponseModel> GetClientDataAsync()
+        {
+            _logger.LogInformation("Starting client data aggregation");
+
+            var currentDate = DateTime.Now;
+            var totalClients = await _clientRepository.GetTotalClientsCountAsync();
+            var newClientsThisMonth = await _clientRepository.GetNewClientsCountAsync(currentDate.Month, currentDate.Year);
+            var monthlyData = await GetMonthlyClientDataAsync(6);
+            var retentionRate = await CalculateRetentionRateAsync();
+
+            _logger.LogInformation("Successfully aggregated client data: " +
+                "TotalClients={TotalClients}, NewThisMonth={NewClientsThisMonth}, Retention={RetentionRate}%", totalClients, newClientsThisMonth, retentionRate);
+
+            return new DashboardClientSummaryResponseModel
+            {
+                TotalClients = totalClients,
+                NewClientsThisMonth = newClientsThisMonth,
+                RetentionRate = retentionRate,
+                MonthlyData = monthlyData
+            };
+        }
+
+        private async Task<List<int>> GetMonthlyClientDataAsync(int months)
+        {
+            _logger.LogInformation("Retrieving monthly client data for last {Months} months", months);
+
+            var monthlyData = new List<int>();
+            var currentDate = DateTime.Now;
+
+            for (int i = months - 1; i >= 0; i--)
+            {
+                var date = currentDate.AddMonths(-i);
+                var endDate = new DateTime(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month));
+
+                var count = await _clientRepository.GetClientsCountUntilDateAsync(endDate);
+                monthlyData.Add(count);
+            }
+
+            _logger.LogInformation("Completed monthly data retrieval. Retrieved {MonthCount} months of data", monthlyData.Count);
+            return monthlyData;
+        }
+
+        private async Task<int> CalculateRetentionRateAsync()
+        {
+            _logger.LogInformation("Calculating client retention rate");
+
+            var activeClients = await _clientRepository.GetActiveClientsCountAsync(6);
+            var totalClients = await _clientRepository.GetTotalClientsCountAsync();
+
+            if (totalClients == 0)
+            {
+                _logger.LogWarning("No clients found - cannot calculate retention rate");
+                return 0;
+            }
+
+            var retentionRate = (int)Math.Round((double)activeClients / totalClients * 100);
+
+            _logger.LogInformation("Calculated retention rate: {RetentionRate}% (Active: {ActiveClients}, Total: {TotalClients})",
+                retentionRate, activeClients, totalClients);
+
+            return retentionRate;
+        }
     }
 }

@@ -40,5 +40,37 @@ namespace Infra.Repositories
                 .Include(client => client.Orders.Where(client => client.IsActive))
                 .FirstOrDefaultAsync(client => client.Id == id);
         }
+
+        public async Task<int> GetActiveClientsCountAsync(int months)
+        {
+            var dateThreshold = DateTime.Now.AddMonths(-months);
+            return await _context.Clients
+                .WhereActive()
+                .Where(c => c.Orders.Any(o => o.OrderDate >= dateThreshold))
+                .CountAsync();
+        }
+
+        public async Task<int> GetNewClientsCountAsync(int month, int year)
+        {
+            return await _context.Clients
+                .WhereActive()
+                .Where(c => c.CreatedAt.Month == month && c.CreatedAt.Year == year)
+                .CountAsync();
+        }
+
+        public async Task<int> GetTotalClientsCountAsync()
+        {
+            return await _context.Clients
+                .WhereActive()
+                .CountAsync();
+        }
+
+        public async Task<int> GetClientsCountUntilDateAsync(DateTime endDate)
+        {
+            return await _context.Clients
+                .WhereActive()
+                .Where(c => c.CreatedAt <= endDate)
+                .CountAsync();
+        }
     }
 }

@@ -7,5 +7,7 @@ namespace Domain.Interfaces
     {
         Task<PagedResult<Product>> GetAllProductsAsync(int pageNumber, int pageSize);
         Task<Product?> GetProductByIdAsync(int id);
+        Task<int> GetLowStockProductsCountAsync(int threshold);
+        Task<PagedResult<Product>> GetLowStockProductsAsync(int pageNumber, int pageSize, int threshold);
     }
 }

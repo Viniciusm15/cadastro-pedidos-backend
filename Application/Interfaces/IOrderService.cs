@@ -12,5 +12,10 @@ namespace Application.Interfaces
         Task UpdateOrder(int id, OrderRequestModel orderRequestModel);
         Task DeleteOrder(int id);
         Task<byte[]> GenerateOrdersReportCsvAsync();
+        Task<double> GetTotalOrderSalesAsync();
+        Task<(double CurrentMonth, double PreviousMonth, int ChangePercentage)> GetOrderSalesTrendAsync();
+        Task<int> GetPendingOrdersCountAsync();
+        Task<List<OrderResponseModel>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate);
+        Task<PagedResult<DashboardPendingOrderResponseModel>> GetPendingOrdersAsync(int pageNumber = 1, int pageSize = 10);
     }
 }

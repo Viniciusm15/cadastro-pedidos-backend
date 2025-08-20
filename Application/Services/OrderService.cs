@@ -233,5 +233,86 @@ namespace Application.Services
                 return Array.Empty<byte>();
             }
         }
+
+        public async Task<double> GetTotalOrderSalesAsync()
+        {
+            _logger.LogInformation("Retrieving total order sales");
+            var totalOrderSales = await _orderRepository.GetTotalOrderSalesAsync();
+
+            _logger.LogInformation("Retrieved total order sales: {TotalOrderSales}", totalOrderSales);
+            return totalOrderSales;
+        }
+
+        public async Task<(double CurrentMonth, double PreviousMonth, int ChangePercentage)> GetOrderSalesTrendAsync()
+        {
+            _logger.LogInformation("Starting order sales trend calculation");
+
+            var now = DateTime.Now;
+            var currentMonth = now.Month;
+            var currentYear = now.Year;
+            var previousMonth = now.AddMonths(-1);
+
+            var currentMonthSales = await _orderRepository.GetMonthlyOrderSalesAsync(currentMonth, currentYear);
+            var previousMonthSales = await _orderRepository.GetMonthlyOrderSalesAsync(previousMonth.Month, previousMonth.Year);
+
+            var change = previousMonthSales != 0
+                ? (int)((currentMonthSales - previousMonthSales) / previousMonthSales * 100)
+                : 100;
+
+            _logger.LogInformation("Successfully calculated order sales trend. Change: {ChangePercentage}%", change);
+
+            return (currentMonthSales, previousMonthSales, change);
+        }
+
+        public async Task<int> GetPendingOrdersCountAsync()
+        {
+            _logger.LogInformation("Retrieving pending orders count");
+            var count = await _orderRepository.GetOrdersCountByStatusAsync(OrderStatus.Pending, OrderStatus.Processing);
+
+            _logger.LogInformation("Retrieved {PendingOrdersCount} pending orders", count);
+            return count;
+        }
+
+        public async Task<List<OrderResponseModel>> GetOrdersByDateRangeAsync(DateTime startDate, DateTime endDate)
+        {
+            _logger.LogInformation("Retrieving orders from {StartDate} to {EndDate}", 
+                startDate.ToString("yyyy-MM-dd"), endDate.ToString("yyyy-MM-dd"));
+
+            var orders = await _orderRepository.GetOrdersByDateRangeAsync(startDate, endDate);
+
+            _logger.LogInformation("Found {OrderCount} orders in date range", orders.Count);
+
+            var result = orders.Select(order => new OrderResponseModel
+            {
+                OrderId = order.Id,
+                OrderDate = order.OrderDate,
+                TotalValue = order.TotalValue,
+                Status = order.Status,
+                ClientId = order.ClientId
+            }).ToList();
+
+            _logger.LogDebug("Retrieved {OrderCount} mapped order records", result.Count);
+
+            return result;
+        }
+
+        public async Task<PagedResult<DashboardPendingOrderResponseModel>> GetPendingOrdersAsync(int pageNumber = 1, int pageSize = 10)
+        {
+            _logger.LogInformation("Retrieving pending orders for page {PageNumber} with size {PageSize}", pageNumber, pageSize);
+            var pagedOrders = await _orderRepository.GetPendingOrdersAsync(pageNumber, pageSize);
+
+            var orderModels = pagedOrders.Items.Select(order => new DashboardPendingOrderResponseModel
+            {
+                Id = "ORD-" + order.Id,
+                ClientName = order.Client?.Name ?? "Client not informed",
+                Amount = order.TotalValue,
+                Status = order.Status,
+                Date = order.OrderDate,
+            }).ToList();
+
+            _logger.LogInformation("Retrieved {OrderCount} pending orders on page {PageNumber}", orderModels.Count(), pageNumber);
+
+            return new PagedResult<DashboardPendingOrderResponseModel>(orderModels, pagedOrders.TotalCount);
+        }
     }
 }
