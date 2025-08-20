@@ -424,5 +424,237 @@ namespace Tests.UnitTests.Services
 
             _clientRepositoryMock.Verify(x => x.DeleteAsync(It.IsAny<Client>()), Times.Never);
         }
+
+        [Fact]
+        public async Task GetActiveClientsCountAsync_ShouldReturnCorrectCount()
+        {
+            // Arrange
+            var months = 6;
+            var expectedCount = 15;
+
+            _clientRepositoryMock
+                .Setup(x => x.GetActiveClientsCountAsync(months))
+                .ReturnsAsync(expectedCount);
+
+            // Act
+            var result = await _clientService.GetActiveClientsCountAsync(months);
+
+            // Assert
+            result.Should().Be(expectedCount);
+
+            // Verify logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Retrieving active clients count for last {months} months")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Retrieved {expectedCount} active clients for last {months} months")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task GetActiveClientsCountAsync_ShouldUseDefaultMonthsWhenNotSpecified()
+        {
+            // Arrange
+            var expectedCount = 10;
+
+            _clientRepositoryMock
+                .Setup(x => x.GetActiveClientsCountAsync(It.IsAny<int>()))
+                .ReturnsAsync(expectedCount);
+
+            // Act
+            var result = await _clientService.GetActiveClientsCountAsync();
+
+            // Assert
+            result.Should().Be(expectedCount);
+            _clientRepositoryMock.Verify(x => x.GetActiveClientsCountAsync(6), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetNewClientsThisMonthAsync_ShouldReturnCorrectCount()
+        {
+            // Arrange
+            var currentDate = DateTime.Now;
+            var expectedCount = 5;
+
+            _clientRepositoryMock
+                .Setup(x => x.GetNewClientsCountAsync(currentDate.Month, currentDate.Year))
+                .ReturnsAsync(expectedCount);
+
+            // Act
+            var result = await _clientService.GetNewClientsThisMonthAsync();
+
+            // Assert
+            result.Should().Be(expectedCount);
+
+            // Verify logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Retrieving new clients count for {currentDate.Month}/{currentDate.Year}")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Retrieved {expectedCount} new clients for {currentDate.Month}/{currentDate.Year}")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task GetClientDataAsync_ShouldReturnCompleteClientData()
+        {
+            // Arrange
+            var currentDate = DateTime.Now;
+            var totalClients = 100;
+            var newClientsThisMonth = 10;
+            var retentionRate = 85;
+            var monthlyData = new List<int> { 80, 85, 90, 92, 95, 100 };
+
+            _clientRepositoryMock.Setup(x => x.GetTotalClientsCountAsync()).ReturnsAsync(totalClients);
+            _clientRepositoryMock.Setup(x => x.GetNewClientsCountAsync(currentDate.Month, currentDate.Year)).ReturnsAsync(newClientsThisMonth);
+            _clientRepositoryMock.Setup(x => x.GetActiveClientsCountAsync(6)).ReturnsAsync(85);
+            _clientRepositoryMock.Setup(x => x.GetClientsCountUntilDateAsync(It.IsAny<DateTime>()))
+                .ReturnsAsync((DateTime date) => monthlyData[date.Month - currentDate.AddMonths(-5).Month]);
+
+            // Act
+            var result = await _clientService.GetClientDataAsync();
+
+            // Assert
+            result.Should().NotBeNull();
+            result.TotalClients.Should().Be(totalClients);
+            result.NewClientsThisMonth.Should().Be(newClientsThisMonth);
+            result.RetentionRate.Should().Be(retentionRate);
+            result.MonthlyData.Should().BeEquivalentTo(monthlyData);
+
+            // Verify logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Starting client data aggregation")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Successfully aggregated client data")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task GetClientDataAsync_ShouldHandleZeroTotalClientsForRetention()
+        {
+            // Arrange
+            _clientRepositoryMock.Setup(x => x.GetTotalClientsCountAsync()).ReturnsAsync(0);
+            _clientRepositoryMock.Setup(x => x.GetActiveClientsCountAsync(6)).ReturnsAsync(0);
+
+            // Act
+            var result = await _clientService.GetClientDataAsync();
+
+            // Assert
+            result.RetentionRate.Should().Be(0);
+
+            // Verify warning log
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No clients found - cannot calculate retention rate")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task GetMonthlyClientDataAsync_ShouldReturnCorrectMonthlyData()
+        {
+            // Arrange
+            var months = 6;
+            var currentDate = DateTime.Now;
+            var expectedData = new List<int> { 80, 85, 90, 92, 95, 100 };
+
+            var setup = _clientRepositoryMock.SetupSequence(x => x.GetClientsCountUntilDateAsync(It.IsAny<DateTime>()));
+            foreach (var count in expectedData)
+            {
+                setup = setup.ReturnsAsync(count);
+            }
+
+            // Através do método público que chama o privado
+            var result = await _clientService.GetClientDataAsync();
+
+            // Assert
+            result.MonthlyData.Should().BeEquivalentTo(expectedData);
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Retrieving monthly client data")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Theory]
+        [InlineData(85, 100, 85)]
+        [InlineData(42, 200, 21)]
+        [InlineData(0, 100, 0)]
+        [InlineData(0, 0, 0)]
+        public async Task CalculateRetentionRateAsync_ShouldCalculateCorrectRate(int activeClients, int totalClients, int expectedRate)
+        {
+            // Arrange
+            _clientRepositoryMock.Setup(x => x.GetActiveClientsCountAsync(6)).ReturnsAsync(activeClients);
+            _clientRepositoryMock.Setup(x => x.GetTotalClientsCountAsync()).ReturnsAsync(totalClients);
+
+            // Act
+            var result = await _clientService.GetClientDataAsync();
+
+            // Assert
+            result.RetentionRate.Should().Be(expectedRate);
+
+            if (totalClients == 0)
+            {
+                _loggerMock.Verify(
+                    x => x.Log(
+                        LogLevel.Warning,
+                        It.IsAny<EventId>(),
+                        It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("No clients found - cannot calculate retention rate")),
+                        null,
+                        It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                    Times.Once);
+            }
+            else
+            {
+                _loggerMock.Verify(
+                    x => x.Log(
+                        LogLevel.Information,
+                        It.IsAny<EventId>(),
+                        It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Calculated retention rate: {expectedRate}%")),
+                        null,
+                        It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                    Times.Once);
+            }
+        }
     }
 }

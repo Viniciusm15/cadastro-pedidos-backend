@@ -6,7 +6,6 @@ using Domain.Interfaces;
 using Domain.Models.Entities;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
-using Domain.Validators;
 using FluentAssertions;
 using FluentValidation;
 using FluentValidation.Results;
@@ -544,6 +543,259 @@ namespace Tests.UnitTests.Services
                 _productService.DeleteProduct(productId));
 
             _productRepositoryMock.Verify(x => x.DeleteAsync(It.IsAny<Product>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetLowStockProductsCountAsync_ShouldReturnCorrectCount()
+        {
+            // Arrange
+            var threshold = 10;
+            var expectedCount = 5;
+
+            _productRepositoryMock
+                .Setup(x => x.GetLowStockProductsCountAsync(threshold))
+                .ReturnsAsync(expectedCount);
+
+            // Act
+            var result = await _productService.GetLowStockProductsCountAsync(threshold);
+
+            // Assert
+            result.Should().Be(expectedCount);
+
+            // Verify logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Retrieving low stock products")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($"Retrieved total low stock products")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLowStockProductsCountAsync_ShouldUseDefaultThreshold()
+        {
+            // Arrange
+            var defaultThreshold = 10;
+            var expectedCount = 3;
+
+            _productRepositoryMock
+                .Setup(x => x.GetLowStockProductsCountAsync(defaultThreshold))
+                .ReturnsAsync(expectedCount);
+
+            // Act
+            var result = await _productService.GetLowStockProductsCountAsync();
+
+            // Assert
+            result.Should().Be(expectedCount);
+            _productRepositoryMock.Verify(x => x.GetLowStockProductsCountAsync(defaultThreshold), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLowStockProductsAsync_ShouldReturnPagedLowStockProducts()
+        {
+            // Arrange
+            var pageNumber = 1;
+            var pageSize = 10;
+            var threshold = 5;
+            var products = new List<Product>
+            {
+                new() { Id = 1, Name = "Product 1", Description = "Description 1" },
+                new() { Id = 2, Name = "Product 2", Description = "Description 2" }
+            };
+
+            var pagedProducts = new PagedResult<Product>(products, 2);
+
+            _productRepositoryMock
+                .Setup(x => x.GetLowStockProductsAsync(pageNumber, pageSize, threshold))
+                .ReturnsAsync(pagedProducts);
+
+            // Act
+            var result = await _productService.GetLowStockProductsAsync(pageNumber, pageSize, threshold);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.Items.Should().HaveCount(2);
+            result.TotalCount.Should().Be(2);
+
+            // Verify logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(
+                        $"Retrieving low stock products (threshold: {threshold}) for page {pageNumber} with size {pageSize}")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(
+                        $"Retrieved {products.Count} low stock products on page {pageNumber}")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLowStockProductsAsync_ShouldUseDefaultParameters()
+        {
+            // Arrange
+            var defaultPageNumber = 1;
+            var defaultPageSize = 10;
+            var defaultThreshold = 10;
+
+            _productRepositoryMock
+                .Setup(x => x.GetLowStockProductsAsync(defaultPageNumber, defaultPageSize, defaultThreshold))
+                .ReturnsAsync(new PagedResult<Product>([], 0));
+
+            // Act
+            await _productService.GetLowStockProductsAsync();
+
+            // Assert
+            _productRepositoryMock.Verify(
+                x => x.GetLowStockProductsAsync(defaultPageNumber, defaultPageSize, defaultThreshold),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task RestockProductAsync_ShouldRestockProduct_WhenValid()
+        {
+            // Arrange
+            var productId = 1;
+            var restockQuantity = 5;
+            var initialStock = 10;
+            var product = new Product
+            {
+                Id = productId,
+                StockQuantity = initialStock,
+                Name = "Test Product",
+                Description = "Test Description"
+            };
+
+            _productRepositoryMock
+                .Setup(x => x.GetProductByIdAsync(productId))
+                .ReturnsAsync(product);
+
+            _productValidatorMock
+                .Setup(x => x.Validate(product))
+                .Returns(new ValidationResult());
+
+            // Act
+            var result = await _productService.RestockProductAsync(productId, restockQuantity);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.NewStockQuantity.Should().Be(initialStock + restockQuantity);
+            result.Message.Should().Be("Stock replenished successfully");
+
+            _productRepositoryMock.Verify(x => x.UpdateAsync(product), Times.Once);
+
+            // Verify logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(
+                        $"Starting product restock for ID {productId} with quantity {restockQuantity}")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(
+                        $"Product restocked successfully. Product: {productId}, New stock: {initialStock + restockQuantity}")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task RestockProductAsync_ShouldThrowNotFoundException_WhenProductNotFound()
+        {
+            // Arrange
+            var productId = 999;
+            var restockQuantity = 5;
+
+            _productRepositoryMock
+                .Setup(x => x.GetProductByIdAsync(productId))
+                .ReturnsAsync((Product)null);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<NotFoundException>(() =>
+                _productService.RestockProductAsync(productId, restockQuantity));
+
+            // Verify error logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(
+                        $"Product not found for restock: {productId}")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task RestockProductAsync_ShouldThrowValidationException_WhenValidationFails()
+        {
+            // Arrange
+            var productId = 1;
+            var restockQuantity = -5; // Invalid quantity
+            var product = new Product
+            {
+                Id = productId,
+                StockQuantity = 10,
+                Name = "Test Product",
+                Description = "Test Description"
+            };
+
+            var validationErrors = new List<ValidationFailure>
+    {
+        new("StockQuantity", "Stock quantity cannot be negative")
+    };
+
+            _productRepositoryMock
+                .Setup(x => x.GetProductByIdAsync(productId))
+                .ReturnsAsync(product);
+
+            _productValidatorMock
+                .Setup(x => x.Validate(product))
+                .Returns(new ValidationResult(validationErrors));
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<Common.Exceptions.ValidationException>(() =>
+                _productService.RestockProductAsync(productId, restockQuantity));
+
+            exception.ValidationErrors.Should().Contain("Stock quantity cannot be negative");
+
+            // Verify error logging
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(
+                        "Product restock failed due to validation errors")),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+                Times.Once);
         }
     }
 }
