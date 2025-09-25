@@ -8,6 +8,7 @@ services:
     environment:
       - ConnectionStrings__DefaultConnection=Server=${DB_SERVER};Database=${DB_NAME};User Id=${DB_USER};Password=${DB_PASSWORD};TrustServerCertificate=True;Connect Timeout=60;
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_URLS=http://+:5000;https://+:5001
     ports:
       - "5000:5000"
       - "5001:5001"
