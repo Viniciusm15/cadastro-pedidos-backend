@@ -1,4 +1,5 @@
 using Infra.Data;
+using Infra.Seed;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Globalization;
@@ -47,7 +48,16 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "OrderRegistrationWebApplication V1");
     });
+
     app.ApplyMigrations();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var seeder = new DbSeeder(context);
+        seeder.Seed(clearData: true);
+    }
+
     app.UseDeveloperExceptionPage();
 }
 
