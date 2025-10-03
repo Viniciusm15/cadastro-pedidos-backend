@@ -65,13 +65,12 @@ namespace Application.Services
                 })
                 .ToList();
 
-            return Enumerable.Range(0, 7)
-                .Select(i => new DashboardWeeklySalesResponseModel
+            return daysMap.Values
+                .Select(dayName => new DashboardWeeklySalesResponseModel
                 {
-                    DayOfWeek = daysMap[(DayOfWeek)i],
-                    TotalSales = result.FirstOrDefault(d => d.DayName == daysMap[(DayOfWeek)i])?.TotalSales ?? 0
+                    DayOfWeek = dayName,
+                    TotalSales = result.FirstOrDefault(d => d.DayName == dayName)?.TotalSales ?? 0
                 })
-                .OrderBy(x => x.DayOfWeek)
                 .ToList();
         }
 

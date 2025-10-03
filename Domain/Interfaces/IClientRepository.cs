@@ -10,6 +10,6 @@ namespace Domain.Interfaces
         Task<int> GetActiveClientsCountAsync(int months);
         Task<int> GetNewClientsCountAsync(int month, int year);
         Task<int> GetTotalClientsCountAsync();
-        Task<int> GetClientsCountUntilDateAsync(DateTime endDate);
+        Task<int> GetClientsCountUntilDateAsync(DateTime startDate, DateTime endDate);
     }
 }

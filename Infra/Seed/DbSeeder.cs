@@ -42,7 +42,8 @@ namespace Infra.Seed
                 .RuleFor(c => c.Name, f => f.Name.FullName())
                 .RuleFor(c => c.Email, (f, c) => f.Internet.Email(c.Name))
                 .RuleFor(c => c.Telephone, f => f.Phone.PhoneNumber("(##) #####-####"))
-                .RuleFor(c => c.BirthDate, f => f.Date.Past(60, DateTime.Now.AddYears(-18)));
+                .RuleFor(c => c.BirthDate, f => f.Date.Past(60, DateTime.Now.AddYears(-18)))
+                .RuleFor(c => c.CreatedAt, f => f.Date.Between(DateTime.Now.AddMonths(-6), DateTime.Now));
 
             var newClients = new List<Client>();
 

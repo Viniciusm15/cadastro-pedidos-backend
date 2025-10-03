@@ -65,11 +65,11 @@ namespace Infra.Repositories
                 .CountAsync();
         }
 
-        public async Task<int> GetClientsCountUntilDateAsync(DateTime endDate)
+        public async Task<int> GetClientsCountUntilDateAsync(DateTime startDate, DateTime endDate)
         {
             return await _context.Clients
                 .WhereActive()
-                .Where(c => c.CreatedAt <= endDate)
+                .Where(c => c.CreatedAt >= startDate && c.CreatedAt <= endDate)
                 .CountAsync();
         }
     }

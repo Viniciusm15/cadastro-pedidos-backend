@@ -6,6 +6,7 @@ using Domain.Models.Entities;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Services
@@ -193,7 +194,7 @@ namespace Application.Services
             var currentDate = DateTime.Now;
             var totalClients = await _clientRepository.GetTotalClientsCountAsync();
             var newClientsThisMonth = await _clientRepository.GetNewClientsCountAsync(currentDate.Month, currentDate.Year);
-            var monthlyData = await GetMonthlyClientDataAsync(6);
+            var (monthlyData, monthlyLabels) = await GetMonthlyClientDataAsync(6);
             var retentionRate = await CalculateRetentionRateAsync();
 
             _logger.LogInformation("Successfully aggregated client data: " +
@@ -204,28 +205,32 @@ namespace Application.Services
                 TotalClients = totalClients,
                 NewClientsThisMonth = newClientsThisMonth,
                 RetentionRate = retentionRate,
-                MonthlyData = monthlyData
+                MonthlyData = monthlyData,
+                MonthlyLabels = monthlyLabels
             };
         }
 
-        private async Task<List<int>> GetMonthlyClientDataAsync(int months)
+        private async Task<(List<int> Data, List<string> Labels)> GetMonthlyClientDataAsync(int months)
         {
             _logger.LogInformation("Retrieving monthly client data for last {Months} months", months);
 
             var monthlyData = new List<int>();
+            var monthlyLabels = new List<string>();
             var currentDate = DateTime.Now;
 
             for (int i = months - 1; i >= 0; i--)
             {
                 var date = currentDate.AddMonths(-i);
-                var endDate = new DateTime(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month));
+                var monthStart = new DateTime(date.Year, date.Month, 1);
+                var monthEnd = new DateTime(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month));
 
-                var count = await _clientRepository.GetClientsCountUntilDateAsync(endDate);
+                var count = await _clientRepository.GetClientsCountUntilDateAsync(monthStart, monthEnd);
                 monthlyData.Add(count);
+                monthlyLabels.Add(date.ToString("MMM"));
             }
 
             _logger.LogInformation("Completed monthly data retrieval. Retrieved {MonthCount} months of data", monthlyData.Count);
-            return monthlyData;
+            return (monthlyData, monthlyLabels);
         }
 
         private async Task<int> CalculateRetentionRateAsync()

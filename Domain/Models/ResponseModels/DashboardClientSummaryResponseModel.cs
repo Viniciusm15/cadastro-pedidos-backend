@@ -5,6 +5,7 @@
         public int TotalClients { get; set; }
         public int NewClientsThisMonth { get; set; }
         public int RetentionRate { get; set; }
-        public List<int> MonthlyData { get; set; } = new List<int>();
+        public List<int> MonthlyData { get; set; } = [];
+        public List<string> MonthlyLabels { get; set; } = [];
     }
 }
