@@ -29,7 +29,7 @@ namespace Web.Controllers
         [HttpGet]
         [ProducesResponseType(typeof(PagedResult<ProductResponseModel>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<PagedResult<ProductResponseModel>>> GetProducts(int pageNumber = 1, int pageSize = 10)
+        public async Task<ActionResult<PagedResult<ProductResponseModel>>> GetProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             try
             {

@@ -19,7 +19,7 @@ namespace Web.Controllers
         }
 
         /// <summary>
-        /// Retorna todos os clientes de forma paginada.
+        /// Retorna uma lista paginada de clientes.
         /// </summary>
         /// <param name="pageNumber">Número da página desejada (padrão é 1).</param>
         /// <param name="pageSize">Quantidade de itens por página (padrão é 10).</param>
@@ -29,7 +29,7 @@ namespace Web.Controllers
         [HttpGet]
         [ProducesResponseType(typeof(PagedResult<ClientResponseModel>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<PagedResult<ClientResponseModel>>> GetClients(int pageNumber = 1, int pageSize = 10)
+        public async Task<ActionResult<PagedResult<ClientResponseModel>>> GetClients([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             try
             {

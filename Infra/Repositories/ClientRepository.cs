@@ -17,11 +17,11 @@ namespace Infra.Repositories
         }
 
         public async Task<PagedResult<Client>> GetAllClientsAsync(int pageNumber, int pageSize)
-        {
+        { 
             var query = _context.Clients
                 .WhereActive()
                 .OrderBy(client => client.Name)
-                .Include(client => client.Orders.Where(client => client.IsActive));
+                .Include(client => client.Orders.Where(order => order.IsActive));
 
             var totalCount = await query.CountAsync();
 
