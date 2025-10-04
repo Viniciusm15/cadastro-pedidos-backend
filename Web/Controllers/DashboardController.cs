@@ -75,7 +75,7 @@ namespace Web.Controllers
         [HttpGet("low-stock-products")]
         [ProducesResponseType(typeof(PagedResult<DashboardLowStockProductResponseModel>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<PagedResult<DashboardLowStockProductResponseModel>>> GetLowStockProducts(int pageNumber = 1, int pageSize = 10)
+        public async Task<ActionResult<PagedResult<DashboardLowStockProductResponseModel>>> GetLowStockProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -99,7 +99,7 @@ namespace Web.Controllers
         [HttpGet("pending-orders")]
         [ProducesResponseType(typeof(PagedResult<DashboardPendingOrderResponseModel>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<PagedResult<DashboardPendingOrderResponseModel>>> GetPendingOrders(int pageNumber = 1, int pageSize = 10)
+        public async Task<ActionResult<PagedResult<DashboardPendingOrderResponseModel>>> GetPendingOrders([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
