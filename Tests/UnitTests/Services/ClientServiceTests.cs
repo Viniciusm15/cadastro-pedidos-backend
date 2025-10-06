@@ -74,7 +74,6 @@ namespace Tests.UnitTests.Services
             result.Items.Last().Name.Should().Be("Client 2");
             result.Items.First().PurchaseHistory.Should().BeEmpty();
 
-            // Verify logging
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Information,
@@ -164,7 +163,6 @@ namespace Tests.UnitTests.Services
             // Act & Assert
             await Assert.ThrowsAsync<NotFoundException>(() => _clientService.GetClientById(clientId));
 
-            // Verify logging
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Error,
@@ -397,7 +395,6 @@ namespace Tests.UnitTests.Services
             // Assert
             _clientRepositoryMock.Verify(x => x.DeleteAsync(existingClient), Times.Once);
 
-            // Verify logging
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Information,
@@ -442,7 +439,6 @@ namespace Tests.UnitTests.Services
             // Assert
             result.Should().Be(expectedCount);
 
-            // Verify logging
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Information,
@@ -497,7 +493,6 @@ namespace Tests.UnitTests.Services
             // Assert
             result.Should().Be(expectedCount);
 
-            // Verify logging
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Information,
@@ -530,8 +525,11 @@ namespace Tests.UnitTests.Services
             _clientRepositoryMock.Setup(x => x.GetTotalClientsCountAsync()).ReturnsAsync(totalClients);
             _clientRepositoryMock.Setup(x => x.GetNewClientsCountAsync(currentDate.Month, currentDate.Year)).ReturnsAsync(newClientsThisMonth);
             _clientRepositoryMock.Setup(x => x.GetActiveClientsCountAsync(6)).ReturnsAsync(85);
-            _clientRepositoryMock.Setup(x => x.GetClientsCountUntilDateAsync(It.IsAny<DateTime>()))
-                .ReturnsAsync((DateTime date) => monthlyData[date.Month - currentDate.AddMonths(-5).Month]);
+            _clientRepositoryMock.Setup(x => x.GetClientsCountUntilDateAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+                .ReturnsAsync((DateTime startDate, DateTime endDate) => {
+                    var monthIndex = startDate.Month - currentDate.AddMonths(-5).Month;
+                    return monthlyData[monthIndex];
+                });
 
             // Act
             var result = await _clientService.GetClientDataAsync();
@@ -543,7 +541,6 @@ namespace Tests.UnitTests.Services
             result.RetentionRate.Should().Be(retentionRate);
             result.MonthlyData.Should().BeEquivalentTo(monthlyData);
 
-            // Verify logging
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Information,
@@ -576,7 +573,6 @@ namespace Tests.UnitTests.Services
             // Assert
             result.RetentionRate.Should().Be(0);
 
-            // Verify warning log
             _loggerMock.Verify(
                 x => x.Log(
                     LogLevel.Warning,
@@ -595,13 +591,13 @@ namespace Tests.UnitTests.Services
             var currentDate = DateTime.Now;
             var expectedData = new List<int> { 80, 85, 90, 92, 95, 100 };
 
-            var setup = _clientRepositoryMock.SetupSequence(x => x.GetClientsCountUntilDateAsync(It.IsAny<DateTime>()));
+            var setup = _clientRepositoryMock.SetupSequence(x => x.GetClientsCountUntilDateAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()));
             foreach (var count in expectedData)
             {
                 setup = setup.ReturnsAsync(count);
             }
 
-            // Através do método público que chama o privado
+            // Act
             var result = await _clientService.GetClientDataAsync();
 
             // Assert
