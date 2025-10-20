@@ -34,6 +34,18 @@ namespace Infra.Mappings
 
             builder.Property(c => c.BirthDate)
                 .HasColumnType("date");
+
+            builder.Property(c => c.ApplicationUserId)
+               .IsRequired()
+               .HasMaxLength(450);
+
+            builder.HasOne(c => c.ApplicationUser)
+                .WithOne(u => u.Client)
+                .HasForeignKey<Client>(c => c.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(c => c.ApplicationUserId)
+                .IsUnique();
         }
     }
 }

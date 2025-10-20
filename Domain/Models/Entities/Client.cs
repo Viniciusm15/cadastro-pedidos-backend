@@ -14,6 +14,9 @@ namespace Domain.Models.Entities
         public required string Telephone { get; set; }
         public DateTime BirthDate { get; set; }
 
+        public required string ApplicationUserId { get; set; }
+        public virtual ApplicationUser ApplicationUser { get; set; } = null!;
+
         public ICollection<Order> Orders { get; set; }
     }
 }

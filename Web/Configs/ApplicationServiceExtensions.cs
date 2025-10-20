@@ -3,6 +3,7 @@ using Application.Services;
 using Common.Helpers;
 using Domain.Validators;
 using FluentValidation;
+using Infrastructure.Services;
 
 namespace Web.Configs
 {
@@ -18,6 +19,8 @@ namespace Web.Configs
             services.AddScoped<IImageService, ImageService>();
             services.AddScoped<ICsvService, CsvService>();
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<ITokenService, TokenService>();
 
             services.AddValidatorsFromAssemblyContaining<CategoryValidator>();
             services.AddValidatorsFromAssemblyContaining<ClientValidator>();
