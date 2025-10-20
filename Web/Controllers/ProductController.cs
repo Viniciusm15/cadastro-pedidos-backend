@@ -3,6 +3,7 @@ using Common.Exceptions;
 using Common.Models;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
@@ -27,6 +28,7 @@ namespace Web.Controllers
         /// <response code="200">Retorna a lista de produtos.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(PagedResult<ProductResponseModel>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<PagedResult<ProductResponseModel>>> GetProducts([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
@@ -51,6 +53,7 @@ namespace Web.Controllers
         /// <response code="404">Produto não encontrado.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpGet("{id}")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(ProductResponseModel), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -80,6 +83,7 @@ namespace Web.Controllers
         /// <response code="400">Requisição inválida.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ProductResponseModel), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -112,6 +116,7 @@ namespace Web.Controllers
         /// <response code="404">Produto não encontrado.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -143,6 +148,7 @@ namespace Web.Controllers
         /// <response code="404">Produto não encontrado.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]

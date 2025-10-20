@@ -2,12 +2,14 @@
 using Common.Exceptions;
 using Common.Models;
 using Domain.Models.ResponseModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;

@@ -3,6 +3,7 @@ using Common.Exceptions;
 using Common.Models;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
@@ -27,6 +28,7 @@ namespace Web.Controllers
         /// <response code="200">Lista paginada de categorias retornada com sucesso.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(PagedResult<CategoryResponseModel>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<PagedResult<CategoryResponseModel>>> GetCategories([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
@@ -51,6 +53,7 @@ namespace Web.Controllers
         /// <response code="404">Categoria com o ID fornecido não foi encontrada.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpGet("{id}")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(CategoryResponseModel), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -80,6 +83,7 @@ namespace Web.Controllers
         /// <response code="400">Requisição inválida.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(CategoryResponseModel), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -111,6 +115,7 @@ namespace Web.Controllers
         /// <response code="404">Categoria não encontrada.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(204)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -145,6 +150,7 @@ namespace Web.Controllers
         /// <response code="404">Categoria com o ID fornecido não foi encontrada.</response>
         /// <response code="500">Erro interno no servidor.</response>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]

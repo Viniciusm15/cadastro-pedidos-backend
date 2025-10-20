@@ -1,14 +1,15 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
 using Common.Models;
-using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class ClientController : ControllerBase
     {
         private readonly IClientService _clientService;
@@ -60,100 +61,6 @@ namespace Web.Controllers
             {
                 var client = await _clientService.GetClientById(id);
                 return Ok(client);
-            }
-            catch (NotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Adiciona um novo cliente.
-        /// </summary>
-        /// <param name="clientRequestModel">Novo cliente a ser adicionado.</param>
-        /// <returns>O cliente recém-criado.</returns>
-        /// <response code="201">Cliente adicionado com sucesso.</response>
-        /// <response code="400">Requisição inválida.</response>
-        /// <response code="500">Erro interno no servidor.</response>
-        [HttpPost]
-        [ProducesResponseType(typeof(ClientResponseModel), 201)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<ClientResponseModel>> PostClient([FromBody] ClientRequestModel clientRequestModel)
-        {
-            try
-            {
-                var client = await _clientService.CreateClient(clientRequestModel);
-                return CreatedAtAction(nameof(GetClientById), new { id = client.ClientId }, client);
-            }
-            catch (ValidationException ex)
-            {
-                return BadRequest(ex.ValidationErrors);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Atualiza um cliente existente.
-        /// </summary>
-        /// <param name="id">ID do cliente a ser atualizado.</param>
-        /// <param name="clientRequestModel">Dados atualizados do cliente.</param>
-        /// <returns>Retorna NoContent se a atualização for bem-sucedida.</returns>
-        /// <response code="204">Cliente atualizado com sucesso.</response>
-        /// <response code="400">Requisição inválida.</response>
-        /// <response code="404">Cliente não encontrado.</response>
-        /// <response code="500">Erro interno no servidor.</response>
-        [HttpPut("{id}")]
-        [ProducesResponseType(204)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<IActionResult> PutClient(int id, [FromBody] ClientRequestModel clientRequestModel)
-        {
-            try
-            {
-                await _clientService.UpdateClient(id, clientRequestModel);
-                return NoContent();
-            }
-            catch (NotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (ValidationException ex)
-            {
-                return BadRequest(ex.ValidationErrors);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Deleta um cliente com o ID especificado.
-        /// </summary>
-        /// <param name="id">ID do cliente a ser deletado.</param>
-        /// <returns>Nenhum conteúdo se a exclusão for bem-sucedida.</returns>
-        /// <response code="204">Cliente foi deletado com sucesso.</response>
-        /// <response code="404">Cliente com o ID fornecido não foi encontrado.</response>
-        /// <response code="500">Erro interno no servidor.</response>
-        [HttpDelete("{id}")]
-        [ProducesResponseType(204)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<IActionResult> DeleteClientById(int id)
-        {
-            try
-            {
-                await _clientService.DeleteClient(id);
-                return NoContent();
             }
             catch (NotFoundException ex)
             {

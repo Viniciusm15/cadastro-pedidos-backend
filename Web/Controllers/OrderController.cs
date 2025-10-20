@@ -3,12 +3,14 @@ using Common.Exceptions;
 using Common.Models;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;

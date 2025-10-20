@@ -1,12 +1,14 @@
 ﻿using Application.Interfaces;
 using Common.Exceptions;
 using Domain.Models.ResponseModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class OrderItemController : ControllerBase
     {
         private readonly IOrderItemService _orderItemService;
