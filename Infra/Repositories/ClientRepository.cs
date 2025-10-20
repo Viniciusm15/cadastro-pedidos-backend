@@ -17,7 +17,7 @@ namespace Infra.Repositories
         }
 
         public async Task<PagedResult<Client>> GetAllClientsAsync(int pageNumber, int pageSize)
-        { 
+        {
             var query = _context.Clients
                 .WhereActive()
                 .OrderBy(client => client.Name)
@@ -33,12 +33,23 @@ namespace Infra.Repositories
             return new PagedResult<Client>(items, totalCount);
         }
 
-        public async Task<Client?> GetClientByIdAsync(int id)
+        public async Task<Client?> GetClientByIdAsync(int id, bool includeInactive = false)
+        {
+            var query = _context.Clients.AsQueryable();
+
+            if (!includeInactive)
+                query = query.WhereActive();
+
+            return await query
+                .Include(client => client.Orders.Where(order => order.IsActive))
+                .FirstOrDefaultAsync(client => client.Id == id);
+        }
+
+        public async Task<Client?> GetClientByApplicationUserIdAsync(string applicationUserId)
         {
             return await _context.Clients
-                .WhereActive()
-                .Include(client => client.Orders.Where(client => client.IsActive))
-                .FirstOrDefaultAsync(client => client.Id == id);
+                .Include(c => c.Orders)
+                .FirstOrDefaultAsync(c => c.ApplicationUserId == applicationUserId);
         }
 
         public async Task<int> GetActiveClientsCountAsync(int months)

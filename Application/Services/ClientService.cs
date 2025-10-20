@@ -6,7 +6,6 @@ using Domain.Models.Entities;
 using Domain.Models.RequestModels;
 using Domain.Models.ResponseModels;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Application.Services
@@ -17,7 +16,9 @@ namespace Application.Services
         private readonly IClientRepository _clientRepository;
         private readonly IValidator<Client> _clientValidator;
 
-        public ClientService(ILogger<ClientService> logger, IClientRepository clientRepository, IValidator<Client> clientValidator)
+        public ClientService(ILogger<ClientService> logger,
+            IClientRepository clientRepository,
+            IValidator<Client> clientValidator)
         {
             _logger = logger;
             _clientRepository = clientRepository;
@@ -32,6 +33,7 @@ namespace Application.Services
             var clientModels = pagedClients.Items.Select(client => new ClientResponseModel
             {
                 ClientId = client.Id,
+                ApplicationUserId = client.ApplicationUserId,
                 Name = client.Name,
                 Email = client.Email,
                 Telephone = client.Telephone,
@@ -65,6 +67,7 @@ namespace Application.Services
             return new ClientResponseModel
             {
                 ClientId = client.Id,
+                ApplicationUserId = client.ApplicationUserId,
                 Name = client.Name,
                 Email = client.Email,
                 Telephone = client.Telephone,
@@ -79,15 +82,43 @@ namespace Application.Services
             };
         }
 
-        public async Task<ClientResponseModel> CreateClient(ClientRequestModel clientRequestModel)
+        public async Task<ClientResponseModel> GetClientByApplicationUserIdAsync(string applicationUserId)
+        {
+            _logger.LogInformation("Searching client by ApplicationUserId: {ApplicationUserId}", applicationUserId);
+            var client = await _clientRepository.GetClientByApplicationUserIdAsync(applicationUserId);
+
+            if (client == null)
+            {
+                _logger.LogError("Client not found for ApplicationUserId: {ApplicationUserId}", applicationUserId);
+                throw new NotFoundException($"Client not found for ApplicationUserId: {applicationUserId}");
+            }
+
+            _logger.LogInformation("Client found for ApplicationUserId: {ApplicationUserId}, ClientId: {ClientId}",
+                applicationUserId, client.Id);
+
+            return new ClientResponseModel
+            {
+                ClientId = client.Id,
+                ApplicationUserId = client.ApplicationUserId,
+                Name = client.Name,
+                Email = client.Email,
+                Telephone = client.Telephone,
+                BirthDate = client.BirthDate,
+                PurchaseHistory = []
+            };
+        }
+
+        public async Task<ClientResponseModel> CreateClient(ClientRequestModel clientRequestModel, string userId)
         {
             _logger.LogInformation("Starting client creation with request data: {ClientRequest}", clientRequestModel);
+
             var client = new Client
             {
                 Name = clientRequestModel.Name,
                 Email = clientRequestModel.Email,
                 Telephone = clientRequestModel.Telephone,
-                BirthDate = clientRequestModel.BirthDate
+                BirthDate = clientRequestModel.BirthDate,
+                ApplicationUserId = userId
             };
 
             var validationResult = _clientValidator.Validate(client);
@@ -99,31 +130,26 @@ namespace Application.Services
 
             await _clientRepository.CreateAsync(client);
 
-            _logger.LogInformation("Client created with ID: {ClientId}", client.Id);
+            _logger.LogInformation("Client created with ID: {ClientId}, ApplicationUserId: {ApplicationUserId}",
+                client.Id, client.ApplicationUserId);
+
             return new ClientResponseModel
             {
                 ClientId = client.Id,
+                ApplicationUserId = client.ApplicationUserId,
                 Name = client.Name,
                 Email = client.Email,
                 Telephone = client.Telephone,
                 BirthDate = client.BirthDate,
-                PurchaseHistory = client.Orders.Select(order => new OrderResponseModel
-                {
-                    OrderId = order.Id,
-                    OrderDate = order.OrderDate,
-                    TotalValue = order.TotalValue,
-                    ClientId = client.Id,
-                }).ToList()
+                PurchaseHistory = []
             };
         }
 
-        public async Task UpdateClient(int id, ClientRequestModel clientRequestModel)
+        public async Task UpdateClient(int id, ClientRequestModel clientRequestModel, bool reactivateIfInactive = false)
         {
             _logger.LogInformation("Starting client update with request data: {ClientRequest}", clientRequestModel);
 
-            _logger.LogInformation("Starting client search with ID {Id}", id);
-            var client = await _clientRepository.GetClientByIdAsync(id);
-
+            var client = await _clientRepository.GetClientByIdAsync(id, includeInactive: reactivateIfInactive);
             if (client == null)
             {
                 _logger.LogError("Client not found by ID: {Id}", id);
@@ -131,6 +157,12 @@ namespace Application.Services
             }
 
             _logger.LogInformation("Client found by ID: {ClientId}", client.Id);
+
+            if (reactivateIfInactive && !client.IsActive)
+            {
+                _logger.LogInformation("Reactivating inactive client. ClientId: {ClientId}", id);
+                client.IsActive = true;
+            }
 
             client.Name = clientRequestModel.Name;
             client.Email = clientRequestModel.Email;
@@ -140,7 +172,8 @@ namespace Application.Services
             var validationResult = _clientValidator.Validate(client);
             if (!validationResult.IsValid)
             {
-                _logger.LogError("Client update failed due to validation errors: {ValidationErrors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                _logger.LogError("Client update failed due to validation errors: {ValidationErrors}",
+                    string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
                 throw new Common.Exceptions.ValidationException(validationResult.Errors.Select(e => e.ErrorMessage));
             }
 
@@ -160,7 +193,7 @@ namespace Application.Services
             }
 
             await _clientRepository.DeleteAsync(client);
-            _logger.LogInformation("Client deleted with ID: {ProductId}", id);
+            _logger.LogInformation("Client deleted with ID: {Id}", id);
         }
 
         public async Task<int> GetActiveClientsCountAsync(int months = 6)
@@ -198,7 +231,8 @@ namespace Application.Services
             var retentionRate = await CalculateRetentionRateAsync();
 
             _logger.LogInformation("Successfully aggregated client data: " +
-                "TotalClients={TotalClients}, NewThisMonth={NewClientsThisMonth}, Retention={RetentionRate}%", totalClients, newClientsThisMonth, retentionRate);
+                "TotalClients={TotalClients}, NewThisMonth={NewClientsThisMonth}, Retention={RetentionRate}%",
+                totalClients, newClientsThisMonth, retentionRate);
 
             return new DashboardClientSummaryResponseModel
             {
