@@ -2,44 +2,82 @@
 using Domain.Enums;
 using Domain.Models.Entities;
 using Infra.Data;
+using Microsoft.AspNetCore.Identity;
 
 namespace Infra.Seed
 {
-    public class DbSeeder(ApplicationDbContext context)
+    public class DbSeeder
     {
-        private readonly ApplicationDbContext _context = context;
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public void Seed(bool clearData = false)
+        public DbSeeder(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        {
+            _context = context;
+            _userManager = userManager;
+            _roleManager = roleManager;
+        }
+
+        public async Task Seed(bool clearData = false)
         {
             if (clearData)
-                ClearAllData();
+                await ClearAllData();
 
-            SeedClients();
-            SeedCategories();
-            SeedProducts();
-            SeedOrders();
-            SeedOrderItems();
+            await SeedRoles();
+            await SeedUsersAndClients();
+            await SeedCategories();
+            await SeedProducts();
+            await SeedOrders();
+            await SeedOrderItems();
         }
 
-        private void ClearAllData()
+        private async Task ClearAllData()
         {
+            _context.OrderItems.RemoveRange(_context.OrderItems);
+            _context.Orders.RemoveRange(_context.Orders);
             _context.Clients.RemoveRange(_context.Clients);
+            _context.Products.RemoveRange(_context.Products);
             _context.Categories.RemoveRange(_context.Categories);
             _context.Images.RemoveRange(_context.Images);
-            _context.Products.RemoveRange(_context.Products);
-            _context.Orders.RemoveRange(_context.Orders);
-            _context.OrderItems.RemoveRange(_context.OrderItems);
-            _context.SaveChanges();
+
+            var users = _userManager.Users.ToList();
+            foreach (var user in users)
+            {
+                await _userManager.DeleteAsync(user);
+            }
+
+            await _context.SaveChangesAsync();
         }
 
-        private void SeedClients()
+        private async Task SeedRoles()
+        {
+            if (!await _roleManager.RoleExistsAsync("Admin"))
+            {
+                await _roleManager.CreateAsync(new IdentityRole("Admin"));
+            }
+
+            if (!await _roleManager.RoleExistsAsync("Customer"))
+            {
+                await _roleManager.CreateAsync(new IdentityRole("Customer"));
+            }
+        }
+
+        private async Task SeedUsersAndClients()
         {
             if (_context.Clients.Count() >= 50) return;
 
             var existingEmails = _context.Clients.Select(c => c.Email).ToHashSet();
+            var userFaker = new Faker<ApplicationUser>()
+                .RuleFor(u => u.FirstName, f => f.Name.FirstName())
+                .RuleFor(u => u.LastName, f => f.Name.LastName())
+                .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.FirstName, u.LastName))
+                .RuleFor(u => u.UserName, (f, u) => u.Email)
+                .RuleFor(u => u.EmailConfirmed, f => true)
+                .RuleFor(u => u.PhoneNumber, f => f.Phone.PhoneNumber("(##) #####-####"));
 
-            var faker = new Faker<Client>()
-                .RuleFor(c => c.Name, f => f.Name.FullName())
+            var clientFaker = new Faker<Client>()
+                .RuleFor(c => c.Name, (f, c) => $"{f.Name.FirstName()} {f.Name.LastName()}")
                 .RuleFor(c => c.Email, (f, c) => f.Internet.Email(c.Name))
                 .RuleFor(c => c.Telephone, f => f.Phone.PhoneNumber("(##) #####-####"))
                 .RuleFor(c => c.BirthDate, f => f.Date.Past(60, DateTime.Now.AddYears(-18)))
@@ -49,19 +87,62 @@ namespace Infra.Seed
 
             while (_context.Clients.Count() + newClients.Count < 50)
             {
-                var client = faker.Generate();
-                if (!existingEmails.Contains(client.Email))
+                var user = userFaker.Generate();
+                var result = await _userManager.CreateAsync(user, "Senha123!");
+
+                if (result.Succeeded)
                 {
-                    existingEmails.Add(client.Email);
-                    newClients.Add(client);
+                    await _userManager.AddToRoleAsync(user, "Customer");
+
+                    var client = clientFaker.Generate();
+                    client.ApplicationUserId = user.Id;
+                    client.ApplicationUser = user;
+                    client.Email = user.Email;
+
+                    if (!existingEmails.Contains(client.Email))
+                    {
+                        existingEmails.Add(client.Email);
+                        newClients.Add(client);
+                    }
                 }
             }
 
             _context.Clients.AddRange(newClients);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
+
+            var adminUser = new ApplicationUser
+            {
+                FirstName = "Admin",
+                LastName = "System",
+                Email = "admin@example.com",
+                UserName = "admin@example.com",
+                EmailConfirmed = true,
+                PhoneNumberConfirmed = true,
+            };
+
+            var adminResult = await _userManager.CreateAsync(adminUser, "Admin123!");
+            if (adminResult.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(adminUser, "Admin");
+
+                var adminClient = new Client
+                {
+                    Name = "Admin System",
+                    Email = adminUser.Email,
+                    Telephone = "(11) 99999-9999",
+                    BirthDate = new DateTime(1980, 1, 1),
+                    ApplicationUserId = adminUser.Id,
+                    ApplicationUser = adminUser,
+                    IsActive = true,
+                    DeletedAt = null
+                };
+
+                _context.Clients.Add(adminClient);
+                await _context.SaveChangesAsync();
+            }
         }
 
-        private void SeedCategories()
+        private async Task SeedCategories()
         {
             if (_context.Categories.Count() >= 8) return;
 
@@ -82,10 +163,10 @@ namespace Infra.Seed
             }
 
             _context.Categories.AddRange(categories);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        private void SeedProducts()
+        private async Task SeedProducts()
         {
             if (_context.Products.Count() >= 100) return;
 
@@ -109,7 +190,7 @@ namespace Infra.Seed
                     EntityType = nameof(Product)
                 };
                 _context.Images.Add(image);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
 
                 var product = new Product
                 {
@@ -119,24 +200,25 @@ namespace Infra.Seed
                     StockQuantity = faker.Random.Int(0, 100),
                     CategoryId = faker.PickRandom(categoryIds),
                     ImageId = image.Id,
-                    Image = image
+                    Image = image,
                 };
 
                 _context.Products.Add(product);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
 
                 image.EntityId = product.Id;
                 _context.Images.Update(image);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
+
         }
 
-        private void SeedOrders()
+        private async Task SeedOrders()
         {
             if (_context.Orders.Count() >= 80) return;
 
             var faker = new Faker();
-            var clientIds = _context.Clients.Select(c => c.Id).ToList();
+            var clientIds = _context.Clients.Where(c => c.IsActive).Select(c => c.Id).ToList();
             var orders = new List<Order>();
 
             for (int i = 0; i < 80; i++)
@@ -153,16 +235,16 @@ namespace Infra.Seed
             }
 
             _context.Orders.AddRange(orders);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        private void SeedOrderItems()
+        private async Task SeedOrderItems()
         {
             if (_context.OrderItems.Count() > 0) return;
 
             var faker = new Faker();
             var orders = _context.Orders.ToList();
-            var products = _context.Products.ToList();
+            var products = _context.Products.Where(p => p.IsActive).ToList();
             var orderItems = new List<OrderItem>();
 
             foreach (var order in orders)
@@ -199,7 +281,7 @@ namespace Infra.Seed
             }
 
             _context.OrderItems.AddRange(orderItems);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
     }
 }
