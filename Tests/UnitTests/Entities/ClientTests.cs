@@ -14,7 +14,8 @@ namespace Tests.UnitTests.Entities
             {
                 Name = "John Doe",
                 Email = "john.doe@example.com",
-                Telephone = "123456789"
+                Telephone = "123456789",
+                ApplicationUserId = "user-123"
             };
 
             // Assert
@@ -31,7 +32,8 @@ namespace Tests.UnitTests.Entities
             {
                 Name = "John Doe",
                 Email = "john.doe@example.com",
-                Telephone = "123456789"
+                Telephone = "123456789",
+                ApplicationUserId = "user-123"
             };
 
             // Act & Assert
@@ -49,6 +51,7 @@ namespace Tests.UnitTests.Entities
                 Name = "John Doe",
                 Email = "john.doe@example.com",
                 Telephone = "123456789",
+                ApplicationUserId = "user-123",
                 DeletedAt = DateTime.UtcNow,
                 IsActive = false
             };
@@ -68,6 +71,7 @@ namespace Tests.UnitTests.Entities
                 Name = "Valid Name",
                 Email = "valid.email@example.com",
                 Telephone = "123456789",
+                ApplicationUserId = "user-123",
                 DeletedAt = DateTime.UtcNow,
                 IsActive = false
             };
@@ -88,7 +92,8 @@ namespace Tests.UnitTests.Entities
             {
                 Name = "",
                 Email = "invalid-email",
-                Telephone = "123"
+                Telephone = "123",
+                ApplicationUserId = "user-123",
             };
 
             // Act

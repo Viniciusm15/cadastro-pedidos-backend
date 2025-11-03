@@ -44,6 +44,7 @@ namespace Tests.UnitTests.Services
                     Name = "Client 1",
                     Email = "client1@test.com",
                     Telephone = "123456789",
+                    ApplicationUserId = "user",
                     BirthDate = new DateTime(1990, 1, 1),
                     Orders = []
                 },
@@ -52,6 +53,7 @@ namespace Tests.UnitTests.Services
                     Name = "Client 2",
                     Email = "client2@test.com",
                     Telephone = "987654321",
+                    ApplicationUserId = "user",
                     BirthDate = new DateTime(1995, 1, 1),
                     Orders = []
                 }
@@ -94,6 +96,7 @@ namespace Tests.UnitTests.Services
                 Name = "Client 1",
                 Email = "client1@test.com",
                 Telephone = "123456789",
+                ApplicationUserId = "user",
                 Orders =
                 [
                     new Order { Id = 1, OrderDate = DateTime.Now, TotalValue = 100.50 }
@@ -125,6 +128,7 @@ namespace Tests.UnitTests.Services
                 Name = "Test Client",
                 Email = "test@client.com",
                 Telephone = "123456789",
+                ApplicationUserId = "user",
                 BirthDate = new DateTime(1985, 5, 15),
                 Orders =
                 [
@@ -133,7 +137,7 @@ namespace Tests.UnitTests.Services
             };
 
             _clientRepositoryMock
-                .Setup(x => x.GetClientByIdAsync(clientId))
+                .Setup(x => x.GetClientByIdAsync(clientId, false))
                 .ReturnsAsync(client);
 
             // Act
@@ -157,7 +161,7 @@ namespace Tests.UnitTests.Services
             var clientId = 999;
 
             _clientRepositoryMock
-                .Setup(x => x.GetClientByIdAsync(clientId))
+                .Setup(x => x.GetClientByIdAsync(clientId, false))
                 .ReturnsAsync((Client)null);
 
             // Act & Assert
@@ -174,9 +178,54 @@ namespace Tests.UnitTests.Services
         }
 
         [Fact]
+        public async Task GetClientByApplicationUserIdAsync_ShouldReturnClient_WhenExists()
+        {
+            // Arrange
+            var applicationUserId = "user123";
+            var client = new Client
+            {
+                Id = 1,
+                ApplicationUserId = applicationUserId,
+                Name = "Test Client",
+                Email = "test@client.com",
+                Telephone = "123456789",
+                BirthDate = new DateTime(1985, 5, 15)
+            };
+
+            _clientRepositoryMock
+                .Setup(x => x.GetClientByApplicationUserIdAsync(applicationUserId))
+                .ReturnsAsync(client);
+
+            // Act
+            var result = await _clientService.GetClientByApplicationUserIdAsync(applicationUserId);
+
+            // Assert
+            result.Should().NotBeNull();
+            result.ClientId.Should().Be(1);
+            result.ApplicationUserId.Should().Be(applicationUserId);
+            result.Name.Should().Be("Test Client");
+        }
+
+        [Fact]
+        public async Task GetClientByApplicationUserIdAsync_ShouldThrowNotFoundException_WhenClientDoesNotExist()
+        {
+            // Arrange
+            var applicationUserId = "nonexistent";
+
+            _clientRepositoryMock
+                .Setup(x => x.GetClientByApplicationUserIdAsync(applicationUserId))
+                .ReturnsAsync((Client)null);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<NotFoundException>(() =>
+                _clientService.GetClientByApplicationUserIdAsync(applicationUserId));
+        }
+
+        [Fact]
         public async Task CreateClient_ShouldReturnCreatedClient_WhenValidationPasses()
         {
             // Arrange
+            var userId = "user123";
             var requestModel = new ClientRequestModel
             {
                 Name = "New Client",
@@ -185,44 +234,26 @@ namespace Tests.UnitTests.Services
                 BirthDate = new DateTime(1990, 1, 1)
             };
 
-            var createdClient = new Client
-            {
-                Id = 1,
-                Name = requestModel.Name,
-                Email = requestModel.Email,
-                Telephone = requestModel.Telephone,
-                BirthDate = requestModel.BirthDate,
-                Orders =
-                [
-                    new Order { Id = 1, OrderDate = DateTime.Now, TotalValue = 100.50 }
-                ]
-            };
-
             _clientValidatorMock
                 .Setup(x => x.Validate(It.IsAny<Client>()))
                 .Returns(new ValidationResult());
 
             _clientRepositoryMock
                 .Setup(x => x.CreateAsync(It.IsAny<Client>()))
-                .Callback<Client>(c =>
-                {
-                    c.Id = createdClient.Id;
-                    c.Orders = createdClient.Orders;
-                })
                 .Returns(Task.CompletedTask);
 
             // Act
-            var result = await _clientService.CreateClient(requestModel);
+            var result = await _clientService.CreateClient(requestModel, userId);
 
             // Assert
             result.Should().NotBeNull();
-            result.ClientId.Should().Be(createdClient.Id);
+            result.ClientId.Should().Be(0); 
             result.Name.Should().Be(requestModel.Name);
             result.Email.Should().Be(requestModel.Email);
             result.Telephone.Should().Be(requestModel.Telephone);
             result.BirthDate.Should().Be(requestModel.BirthDate);
-            result.PurchaseHistory.Count.Should().Be(1);
-            result.PurchaseHistory.First().TotalValue.Should().Be(100.50);
+            result.PurchaseHistory.Count.Should().Be(0);
+            result.ApplicationUserId.Should().Be(userId);
 
             _clientRepositoryMock.Verify(x => x.CreateAsync(It.IsAny<Client>()), Times.Once);
         }
@@ -234,7 +265,7 @@ namespace Tests.UnitTests.Services
             var requestModel = new ClientRequestModel
             {
                 Name = "New Client",
-                Email = "invalid-email", // Invalid email
+                Email = "invalid-email",
                 Telephone = "987654321",
                 BirthDate = new DateTime(1990, 1, 1)
             };
@@ -250,7 +281,7 @@ namespace Tests.UnitTests.Services
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<Common.Exceptions.ValidationException>(() =>
-                _clientService.CreateClient(requestModel));
+                _clientService.CreateClient(requestModel, "user"));
 
             exception.ValidationErrors.Should().Contain("Email must be valid");
 
@@ -276,12 +307,13 @@ namespace Tests.UnitTests.Services
                 Name = "Original Client",
                 Email = "original@client.com",
                 Telephone = "987654321",
+                ApplicationUserId = "user",
                 BirthDate = new DateTime(1990, 1, 1),
                 Orders = []
             };
 
             _clientRepositoryMock
-                .Setup(x => x.GetClientByIdAsync(clientId))
+                .Setup(x => x.GetClientByIdAsync(clientId, false))
                 .ReturnsAsync(existingClient);
 
             _clientValidatorMock
@@ -297,7 +329,51 @@ namespace Tests.UnitTests.Services
                 c.Name == requestModel.Name &&
                 c.Email == requestModel.Email &&
                 c.Telephone == requestModel.Telephone &&
-                c.BirthDate == requestModel.BirthDate)),
+                c.BirthDate == requestModel.BirthDate &&
+                c.ApplicationUserId == "user")),
+            Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateClient_ShouldReactivateClient_WhenReactivateIfInactiveIsTrue()
+        {
+            // Arrange
+            var clientId = 1;
+            var requestModel = new ClientRequestModel
+            {
+                Name = "Reactivated Client",
+                Email = "reactivated@client.com",
+                Telephone = "123123123",
+                BirthDate = new DateTime(1980, 1, 1)
+            };
+
+            var inactiveClient = new Client
+            {
+                Id = clientId,
+                Name = "Inactive Client",
+                Email = "inactive@client.com",
+                Telephone = "987654321",
+                ApplicationUserId = "user",
+                BirthDate = new DateTime(1990, 1, 1),
+                IsActive = false
+            };
+
+            _clientRepositoryMock
+                .Setup(x => x.GetClientByIdAsync(clientId, true))
+                .ReturnsAsync(inactiveClient);
+
+            _clientValidatorMock
+                .Setup(x => x.Validate(It.IsAny<Client>()))
+                .Returns(new ValidationResult());
+
+            // Act
+            await _clientService.UpdateClient(clientId, requestModel, reactivateIfInactive: true);
+
+            // Assert
+            _clientRepositoryMock.Verify(x => x.UpdateAsync(It.Is<Client>(c =>
+                c.IsActive == true &&
+                c.Name == requestModel.Name &&
+                c.ApplicationUserId == "user")),
             Times.Once);
         }
 
@@ -315,7 +391,7 @@ namespace Tests.UnitTests.Services
             };
 
             _clientRepositoryMock
-                .Setup(x => x.GetClientByIdAsync(clientId))
+                .Setup(x => x.GetClientByIdAsync(clientId, true))
                 .ReturnsAsync((Client)null);
 
             // Act & Assert
@@ -344,6 +420,7 @@ namespace Tests.UnitTests.Services
                 Name = "Original Client",
                 Email = "original@client.com",
                 Telephone = "987654321",
+                ApplicationUserId = "user",
                 BirthDate = new DateTime(1990, 1, 1),
                 Orders = []
             };
@@ -354,7 +431,7 @@ namespace Tests.UnitTests.Services
             };
 
             _clientRepositoryMock
-               .Setup(x => x.GetClientByIdAsync(clientId))
+               .Setup(x => x.GetClientByIdAsync(clientId, false))
                .ReturnsAsync(existingClient);
 
             _clientValidatorMock
@@ -381,12 +458,13 @@ namespace Tests.UnitTests.Services
                 Name = "Client to Delete",
                 Email = "delete@client.com",
                 Telephone = "123456789",
+                ApplicationUserId = "user",
                 BirthDate = new DateTime(1985, 5, 15),
                 Orders = new List<Order>()
             };
 
             _clientRepositoryMock
-                .Setup(x => x.GetClientByIdAsync(clientId))
+                .Setup(x => x.GetClientByIdAsync(clientId, false))
                 .ReturnsAsync(existingClient);
 
             // Act
@@ -412,7 +490,7 @@ namespace Tests.UnitTests.Services
             var clientId = 999;
 
             _clientRepositoryMock
-                .Setup(x => x.GetClientByIdAsync(clientId))
+                .Setup(x => x.GetClientByIdAsync(clientId, true))
                 .ReturnsAsync((Client)null);
 
             // Act & Assert
@@ -526,7 +604,8 @@ namespace Tests.UnitTests.Services
             _clientRepositoryMock.Setup(x => x.GetNewClientsCountAsync(currentDate.Month, currentDate.Year)).ReturnsAsync(newClientsThisMonth);
             _clientRepositoryMock.Setup(x => x.GetActiveClientsCountAsync(6)).ReturnsAsync(85);
             _clientRepositoryMock.Setup(x => x.GetClientsCountUntilDateAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>()))
-                .ReturnsAsync((DateTime startDate, DateTime endDate) => {
+                .ReturnsAsync((DateTime startDate, DateTime endDate) =>
+                {
                     var monthIndex = startDate.Month - currentDate.AddMonths(-5).Month;
                     return monthlyData[monthIndex];
                 });

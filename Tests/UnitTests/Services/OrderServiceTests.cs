@@ -531,7 +531,8 @@ namespace Tests.UnitTests.Services
                     Client = new Client {
                         Name = "Test Client",
                         Email = "client1@test.com",
-                        Telephone = "123456789"
+                        Telephone = "123456789",
+                        ApplicationUserId = "user"
                     },
                     OrderItems = new List<OrderItem>
                     {
@@ -743,7 +744,7 @@ namespace Tests.UnitTests.Services
             var result = await _orderService.GetOrderSalesTrendAsync();
 
             // Assert
-            result.ChangePercentage.Should().Be(100); // Special case when previous month is 0
+            result.ChangePercentage.Should().Be(100);
         }
 
         [Fact]
@@ -884,7 +885,8 @@ namespace Tests.UnitTests.Services
                      Client = new Client {
                         Name = "Test Client 1",
                         Email = "client1@test.com",
-                        Telephone = "123456789"
+                        Telephone = "123456789",
+                        ApplicationUserId = "user1"
                     },
                 },
                 new() {
@@ -895,7 +897,8 @@ namespace Tests.UnitTests.Services
                      Client = new Client {
                         Name = "Test Client 2",
                         Email = "client2@test.com",
-                        Telephone = "423456789"
+                        Telephone = "423456789",
+                        ApplicationUserId = "user2"
                     },
                 }
             };
